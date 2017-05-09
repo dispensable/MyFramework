@@ -38,7 +38,7 @@ class Request(object):
     @property
     def cookie(self):
         """ 返回SIMPLECOOKIE生成的SimpleCookie实例"""
-        cookie = self.environ.get('HTTP_COOKIE')
+        cookie = self.environ.get('HTTP_COOKIE', None)
 
         if cookie:
             return SimpleCookie(cookie)

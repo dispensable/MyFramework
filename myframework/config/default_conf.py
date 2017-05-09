@@ -1,11 +1,11 @@
-__version__ = '0.1.0'
+from myframework import __version__
 
 
 bind = '127.0.0.1:8080'
 conf = 'default'
 debug = False
 param = {}
-plugin = ''
+plugin = []
 reload = False
 server = 'myserver'
 version = __version__

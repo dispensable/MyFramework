@@ -22,8 +22,10 @@ from myframework.request import RequestWrapper
 from .error import HttpError, RouteNotFoundException
 from .error import InvailideReloader
 from .error import UninstallPluginsError
+from .error import ReloaderNotExist, ServerAdaptorNotExists
 from .plugin.plugin import Plugin
 from .plugin.template_plugin import MakoTemplatePlugin, Template
+from .server import server_adaptors
 
 request = RequestWrapper()
 response = ResponseWrapper()
@@ -33,10 +35,10 @@ class MyApp(object):
     """ WSGI app """
     def __init__(self, path, name='default_app'):
         self.root_path = path
-        self.config = None
-        self.reload = None
-        self.reloader = None
-        self.debug = None
+        self.config = {}
+        self.reload = False
+        self.reloader = 'auto'
+        self.debug = False
         self.name = name
         self.router = Router()
         self.routes = []
@@ -64,9 +66,9 @@ class MyApp(object):
         self.reloader = reloaders[self.reloader](callback=on_change)
         self.reloader.start()
 
-    def _load_plugin(self):
+    def _load_plugin(self, plugins=None):
         """ load cli plugins """
-        plugins = self.config.get('plugin')
+        plugins = plugins or self.config.get('plugin')
         for plugin in plugins:
             filename, plugin_name = plugin.split(':')
             sys.path.append(os.getcwd())
@@ -86,14 +88,20 @@ class MyApp(object):
             self._init_reloader()
         self._load_plugin()
 
-    def _override_config(self):
-        try:
-            param = self.config.get('param')
-        except AttributeError:
-            pass
-        else:
-            if param:
-                self.config.override_config(param)
+    def _override_config(self, config=None):
+        param = config or self.config.get('param')
+        if param:
+            self.config.override_config(param)
+
+    @property
+    def debug(self):
+        return self.config.get('debug')
+
+    @debug.setter
+    def debug(self, value):
+        assert isinstance(value, bool), \
+            'debug value should be True/False.'
+        self.config['debug'] = value
 
     def wsgi(self, environ, start_response, exe_info=None):
         """ WSGI 入口 """
@@ -488,3 +496,44 @@ def static_file(filename, root, mimetype=True, download=False, charset='UTF-8', 
             response.status_code = 206
             return body
     return body
+
+
+def run(app,
+        host='127.0.0.1',
+        port=8000,
+        server='wsgiref',
+        interval=1,
+        quiet=False,
+        reloader=False,
+        plugins=None,
+        debug=None,
+        config=None,
+        **kwargs):
+    if reloader:
+        r_engine = reloaders.get(reloader)
+        if not r_engine:
+            raise ReloaderNotExist(reloader)
+        r_engine().run()
+
+    if plugins:
+        assert isinstance(plugins, list)
+        app._load_plugin(plugins=plugins)
+
+    if debug:
+        app.debug = debug
+
+    if config:
+        assert isinstance(config, dict)
+        app._override_config(config=config)
+
+    adaptor = server_adaptors.get(server)
+
+    if adaptor:
+        server = adaptor(host=host,
+                         port=port,
+                         interval=interval,
+                         quiet=quiet,
+                         **kwargs)
+        print(server)
+        server.run(app)
+    raise ServerAdaptorNotExists(adaptor)

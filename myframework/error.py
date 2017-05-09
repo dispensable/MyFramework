@@ -97,3 +97,21 @@ class HttpError(Exception):
 
     def __str__(self):
         return self.body
+
+
+class ReloaderNotExist(MyFramworkException):
+    def __init__(self, reloader_name, msg=None):
+        self.name = reloader_name
+        self.msg = msg
+
+    def __str__(self):
+        return "Reloader {} not exist.".format(self.name) if not self.msg else self.msg
+
+
+class ServerAdaptorNotExists(MyFramworkException):
+    def __init__(self, adaptor_name, msg=None):
+        self.name = adaptor_name
+        self.msg = msg
+
+    def __str__(self):
+        return "Server adaptor {} not exists.".format(self.name) if not self.msg else self.msg

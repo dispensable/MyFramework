@@ -1,8 +1,5 @@
 from docopt import docopt
-# from ..utils import __version__
-import sys
-
-__version__ = '0.1.0'
+from myframework import __version__
 
 CLI_DOC = """Myframwork.
 Usage:
@@ -15,7 +12,7 @@ Options:
                         bind socket to ADDRESS. [default: 127.0.0.1:8080]
   -s SERVER --server=SERVER
                         use SERVER as backend. [default: myserver]
-  -p <PLUGIN> --plugin=<PLUGIN>
+  -p <PLUGINMODULE:PLUGINNAME> --plugin=<PLUGINMODULE:PLUGINNAME>
                         install additional plugin/s.
   -c FILE --conf=FILE   load config values from FILE. [default: default]
   -C <NAME=VALUE> --param=<NAME=VALUE>

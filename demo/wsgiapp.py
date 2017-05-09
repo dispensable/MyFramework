@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from myframework.myframwork import MyApp, request, response, error, redirect
+from myframework.myframwork import MyApp, request, response, error, redirect, run
 from myframework.utils import check_cookie
 
 import os
@@ -10,7 +10,7 @@ wsgi_app = MyApp(__file__)
 
 @wsgi_app.route('/4')
 def hello():
-    response.status = 200
+    print(request)
     if request.cookie is None:
         response.set_cookie('wang', 'test', secret_key='wang')
     else:
@@ -27,7 +27,6 @@ def hello():
 
 @wsgi_app.route(r'/wiki/<name>')
 def test(name):
-    response.status = 200
     response.add_header('Content-Length', '15')
     return 'hello world' + name
 
@@ -49,7 +48,7 @@ def test3():
 
 @wsgi_app.route(r'/')
 def test4():
-    return redirect('http://127.0.0.1:8080/4')
+    return redirect('http://127.0.0.1:8000/4')
 
 
 @wsgi_app.hook(name='after_request')
@@ -62,3 +61,6 @@ def form_test():
     print(request.form.getvalue('beans'))
     response.status_code = 201
     return 'test'
+
+if __name__ == '__main__':
+    run(app=wsgi_app, port=8080, server='myserver')

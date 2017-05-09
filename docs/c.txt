@@ -1,0 +1,135 @@
+bind 
+^^^^
+
+    默认值: '127.0.0.1:8080'
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   bind = '127.0.0.1:8080'
+
+conf 
+^^^^
+
+    默认值: 'default'
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   conf = 'default'
+
+debug 
+^^^^^
+
+    默认值: False
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   debug = False
+
+param 
+^^^^^
+
+    默认值: {}
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   param = {}
+
+plugin 
+^^^^^^
+
+    默认值: ''
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   plugin = ''
+
+reload 
+^^^^^^
+
+    默认值: False
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   reload = False
+
+server 
+^^^^^^
+
+    默认值: 'myserver'
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   server = 'myserver'
+
+version 
+^^^^^^^
+
+    默认值: __version__
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   version = __version__
+
+reloader 
+^^^^^^^^
+
+    默认值: 'auto'
+
+    可选值:
+
+    说明:
+
+    示例:
+
+.. code-block:: python
+
+   reloader = 'auto'
+

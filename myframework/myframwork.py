@@ -76,7 +76,7 @@ class MyApp(object):
                 exec('from {} import {}'.format(filename, plugin_name))
             except ImportError:
                 raise
-            self.install(exec(plugin_name))
+            self.install(eval(plugin_name))
 
     def load_config(self, config):
         self.config = config

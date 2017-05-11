@@ -43,14 +43,12 @@ class Router(object):
                 return route, is_match.groupdict()
         raise RouteNotFoundException(env_path, method)
 
-    def add_filter(self, filter_clas):
+    def add_filter(self, filter_name, re_rule):
         """ Add a new filter to the route class.
             name: filter name (str)
             re: filter discard (use re)
         """
-        if not isinstance(filter_clas, RouteFilter):
-            raise TypeError('Filter must be a filter class.')
-        Route.filter_pattern[filter_clas.name] = filter_clas.re
+        Route.filter_pattern[filter_name] = r'(?P<{name}>%s)' % re_rule
 
 
 class Route(object):
@@ -107,61 +105,64 @@ class Route(object):
     def is_with_filter(self):
         return '<' in self.path and ':' in self.path
 
-    @property
-    def filter(self):
-        """ 返回filter 和 其re 模式"""
-        # 静态路由
-        if self.is_static:
-            return 'static', self.filter_pattern['static']
-        # 动态无过滤器
-        if not self.is_static and not self.is_with_filter:
-            return 'regular', self.filter_pattern['regular']
-        # 动态有过滤器
-        if self.is_with_filter:
-            _, f, *rest = self.path.split(':')
-            # int, float, path 过滤器
-            if f.endswith('>'):
-                f = f[:-1]
+    @staticmethod
+    def _find_filters(path):
+        """ from path find all filters and name or re rules and add them to a list
+            :return [(name, filter [, re_rules])...]
+        """
+        name_and_filter_list = re.findall(r'<([^/]+)>', path)
+        orgin_name = []
 
-            # re filter
-            if rest[0].endswith('>'):
-                rest = rest[0][:-1]
-            else:  # re error
-                rest = None
+        for name_and_filter in name_and_filter_list:
+            name, filter_name, *rest = name_and_filter.split(':')
+            orgin_name.append((name, filter_name, ''.join(rest))
+                              if rest else (name, filter_name))
 
-            return f.lstrip(), r'(?P<{name}>%s)' % rest if f == 're' else self.filter_pattern[f]
+        return orgin_name
 
     def trans_to_re(self):
         """ transfer all filter into a re filter """
         # 静态路由不转换
         if self.is_static:
             return
-        # dynamic route replace
-        self.path = self._replace_filter(self.path,
-                                         self.filter,
-                                         re.findall(r'<([^/]+)>', self.path))
 
-    def _replace_filter(self, path, filter_and_re, old_name_list):
-        new_pattern = filter_and_re[1]
-        if new_pattern is None:
-            raise UnknownFilterException(filter_and_re[0])
-        all_patterns = [new_pattern.format(name=name) for name in old_name_list]
-        for index, name in enumerate(old_name_list):
-            pattern = r'<{}>'.format(name)
-            path = re.sub(pattern, all_patterns[index], path)
+        # 动态无过滤器
+        if not self.is_with_filter:
+            self.path = self._regular_to_re(self.path)
+
+        # 动态有过滤器
+        self.path = self._filter_to_re(self.path)
+
+    def _regular_to_re(self, path):
+        # find all names
+        all_names = re.findall(r'<([^/]+)>', path)
+        # 替换为普通过滤器
+        regular = self.filter_pattern['regular']
+        for name in all_names:
+            path = path.replace('<{}>'.format(name), regular.format(name=name))
+
+        return path
+
+    def _filter_to_re(self, path):
+        # find all names and filters
+        name_filters = self._find_filters(path)
+        # 替换为相关的路由
+        for name, f, *rule in name_filters:
+            # 构造新的re
+            if f == 're':
+                re_rule = r'(?P<{name}>{rule})'.format(name=name, rule=rule[0])
+            else:
+                r = self.filter_pattern.get(f)
+                if f:
+                    re_rule = r.format(name=name)
+                else:
+                    raise UnknownFilterException(f)
+
+            old_re = '<{name}:{f}>'.format(name=name, f=f) \
+                if not rule else '<{name}:{f}:{rule}>'.format(name=name, f=f, rule=rule[0])
+            # 替换为新re
+            path = path.replace(old_re, re_rule)
         return path
 
     def __str__(self):
         return '<Route for path: {}>'.format(self.path)
-
-
-class RouteFilter(object):
-    def __init__(self, name, re):
-        self.name = name
-        self.re = re
-
-    def __str__(self):
-        return "{}:{}".format(self.name, self.re)
-
-    def __repr__(self):
-        return r'(?P<{name}:var_name>{re})'.format(name=self.name, re=self.re)

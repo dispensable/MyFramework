@@ -68,6 +68,9 @@ class FilterDict:
     def __delitem__(self, key):
         raise AttributeError('Access denied.')
 
+    def get(self, key, default=None):
+        return self.filter.get(key, default=default)
+
 
 class FileUpload:
     """ A wrapper for upload file """

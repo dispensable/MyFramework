@@ -103,7 +103,7 @@ class Route(object):
 
     @property
     def is_with_filter(self):
-        return '<' in self.path and ':' in self.path
+        return ('<' in self.path) and (':' in self.path)
 
     @staticmethod
     def _find_filters(path):
@@ -127,11 +127,12 @@ class Route(object):
             return
 
         # 动态无过滤器
-        if not self.is_with_filter:
+        elif not self.is_with_filter:
             self.path = self._regular_to_re(self.path)
 
         # 动态有过滤器
-        self.path = self._filter_to_re(self.path)
+        else:
+            self.path = self._filter_to_re(self.path)
 
     def _regular_to_re(self, path):
         # find all names

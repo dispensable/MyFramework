@@ -376,8 +376,8 @@ class MyApp(object):
         """ handy decorator with method patch """
         return self.route(path, method, **options)
 
-    def run(self, port=8080, host='127.0.0.1'):
-        pass
+    def add_filter(self, filter_name, re_rule):
+        self.router.add_filter(filter_name, re_rule)
 
     def render_template(self, *args, **kwargs):
         """ 第一个参数被视为template name, {}视为关键字参数.

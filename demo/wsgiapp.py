@@ -40,6 +40,13 @@ def json():
 def test1():
     return error(404)
 
+wsgi_app.add_filter('alpha', r'[a-zA-Z]+')
+
+
+@wsgi_app.route(r'/test/<name:int>/<test:float>/<this:alpha>')
+def test2(name, test, this):
+    return '{}:{}:{}'.format(name, test, this)
+
 
 @wsgi_app.route(r'/render')
 def test3():

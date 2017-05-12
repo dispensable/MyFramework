@@ -1,0 +1,692 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>开发概览 &#8212; MyFramework 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="插件" href="plugin.html" />
+    <link rel="prev" title="框架配置选项" href="config.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="id1">
+<h1>开发概览<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id2">
+<h2>快速起步<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>让我们先从一个最简单的`hello world`示例开始讲起吧。</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframwork</span> <span class="kn">import</span> <span class="n">MyApp</span><span class="p">,</span> <span class="n">run</span>
+
+<span class="c1"># 建立应用</span>
+<span class="n">myapp</span> <span class="o">=</span> <span class="n">MyApp</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+
+<span class="c1"># 定义路由</span>
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;hello world!&#39;</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="o">=</span><span class="n">myapp</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8080</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>运行该程序：</p>
+<p>打开浏览器，在地址栏输入 <a class="reference external" href="http://127.0.0.1:8080">http://127.0.0.1:8080</a> 就可以看到熟悉的`hello world`了。
+让我们逐行解释下到底发生了什么。</p>
+<p>首先我们导入MyApp类，这是我们要定义的web应用的类，实例化之后得到一个MyApp实例。run函数使用
+一系列参数决定运行时服务器的设置。</p>
+<p>然后我们实例化该类，传入参数为app所在的目录，__file__总是指向我们定义app的模组目录，所以大多
+情况下，直接使用__file__即可灵活的定义app目录，避免写死在程序里。</p>
+<p>接着我们调用app实例myapp的一个实例方法，返回一个装饰器函数，这个函数接受一系列的参数，其中最
+重要的就是路径参数，该参数决定了http请求时的请求路径对应的函数。这里我们指定/主目录对应下面
+定义的hello函数——也就是说在访问/路径时，将触发hello函数的运行，并返回相应结果。</p>
+<p>然后是熟悉的 <cite>if __name__ == &#8216;__main__:&#8217;</cite>,指定模组直接执行时的行为，我们的调用导入的run
+函数来启动一个服务器，run函数也接受一系列的参数来定义运行时的行为，这里我们传入app实例，和需要
+绑定的端口位置。一个简单的`hello world`程序就完成了。</p>
+<p>我们运行程序，之后在浏览器点击`http://127.0.0.1:8080`时，浏览器向服务器发出一个http GET请求，
+服务器通过WSGI
+将该请求的处理发送给web框架，web框架在对请求做适当的包装和处理之后，构建起request对象并在所有
+的路由中找寻匹配的路径（此处为`\`），查找到相关路由之后，调用该路由指定的处理函数（此处为返回
+<a href="#id3"><span class="problematic" id="id4">`</span></a>hello world`字符串。）web
+框架在收到函数的返回值之后，将其加工成WSGI兼容的数据格式，添加相关的头部和http响应数据，构建HTTP
+response 对象，之后将该对象的相关值返回到服务器，服务器将该结果发送到浏览器，浏览器识别和处理
+HTTP 响应之后，显示我们响应的内容。</p>
+<p>这就是全部的处理过程了。</p>
+</div>
+<div class="section" id="id5">
+<h2>请求路由<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<p>路由配置是一组指令，用来告诉router 如何匹配URL以及匹配后如何执行代码。在上一节中我们写了一个简单
+的路由函数:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;hello world&#39;</span>
+</pre></div>
+</div>
+<p>route装饰器的作用，就是讲请求路径和需要执行的代码关联起来，route装饰器接收一个path参数，讲用户定义的hello
+函数添加到myapp的路由列表中。在需要匹配路径时，通过Router类完成路由的匹配与执行。</p>
+<p>可以在路由路径中添加过滤器，完成对某些特殊路由的匹配工作：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/&lt;name&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+    <span class="c1"># some handle code</span>
+    <span class="k">return</span> <span class="s1">&#39;hello world {name!s}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>上述代码将匹配路径中的&lt;name&gt;部分，并将其赋值给name变量，你可以在处理函数中引用该变量。过滤器还有很多更灵活的
+应用，详见 <a class="reference internal" href="#filter-label"><span class="std std-ref">动态路由</span></a>。以下详解说明路由的编写。</p>
+<div class="section" id="id6">
+<h3>静态路由<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>静态路由非常简单，直接在route装饰器中指明路径和方法即可,还可以通过 <cite>name</cite> 参数指定路由的名称。我们重点来谈论
+下动态路由。</p>
+</div>
+<div class="section" id="filter-label">
+<span id="id7"></span><h3>动态路由<a class="headerlink" href="#filter-label" title="Permalink to this headline">¶</a></h3>
+<p>在路径参数中包含通配符的路由被称之为动态路由。因为通配符的原因，它可以匹配多条符合通配符的路径，简单的通配符示例
+如 <cite>&#64;myapp.route(&#8216;/wiki/&lt;name&gt;&#8217;)</cite> 将变量名包裹在&lt;&gt;尖括号中。在匹配成功之后，即可在回调函数中引用该变量。方
+括号以为着此处可以匹配多个不同长度的字符，但是包含 <cite>/</cite> 的内容匹配将会失败。例如，<cite>/wiki/test</cite> 匹配成功，<cite>/wiki
+/testtesttest</cite> 也会成功，但是 <cite>/wikitest/test</cite> 不会成功， <cite>/wiki/test/test</cite> 也不会成功。</p>
+<p>你也可以在路径中指定过滤器，用来处理更加特殊的路径模式。使用 <cite>&lt;name:filter_name&gt;</cite> 来使用内置过滤器，使用
+<cite>&lt;name:fileter_name:config&gt;</cite> 来使用自定义的过滤器和re过滤器。通过config指定需要传入的参数。</p>
+<p>MyFramework已经内置了以下四种过滤器：</p>
+<ul class="simple">
+<li>:int 匹配整数并将其转化为整数</li>
+<li>:float 匹配浮点数并将该值转为浮点数</li>
+<li>:path 匹配路径（例如托管的静态文件 <cite>r&#8217;/static/&lt;path:path&gt;&#8217;</cite></li>
+<li>:re 使用Python正则表达式过滤路径，匹配成功的路径不会被替换。</li>
+</ul>
+<p>示例:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/testint/&lt;name:int&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/testfloat/&lt;name:float&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/testre/&lt;name:re:[a-zA-Z]+&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">name</span><span class="o">.</span><span class="n">isalpha</span><span class="p">()</span>
+
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/static/&lt;path:path&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">callback</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">static_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>你还可以实现自定义的filter，使用myapp的实例方法 <cite>add_filter(filter_name, re_rules):</cite> 即可添加新的
+filter。第一个参数指定filter的name（在&lt;var_name:filtername&gt;中使用），第二个参数是re正则表达式。</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">myapp</span><span class="o">.</span><span class="n">add_filter</span><span class="p">(</span><span class="s1">&#39;myfilter&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;[a-zA-Z0-9_]&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>上述代码就可以添加一个filter，之后就可以在接下来的代码中使用了。</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">使用filter时，不要在 <cite>:</cite> 附近加空格，将导致路由无法匹配。（PEP也不建议在参数位置加空格）</p>
+</div>
+</div>
+<div class="section" id="http-method">
+<h3>HTTP METHOD<a class="headerlink" href="#http-method" title="Permalink to this headline">¶</a></h3>
+<p>你可以通过route装饰器的method参数指定回调函数的请求方法。除此之外， <cite>myapp</cite> 实例还定义了很多便捷的类方法，
+使用这些类方法可以快速指定需要的HTTP request method。列表如下：</p>
+<ul class="simple">
+<li>get</li>
+<li>post</li>
+<li>put</li>
+<li>delete</li>
+<li>patch</li>
+</ul>
+<p>使用示例：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframwork.myframework</span> <span class="kn">import</span> <span class="n">request</span>
+
+<span class="nd">@myapp.get</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/login&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">login</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &lt;form action=&quot;/login&quot; method=&quot;post&quot;&gt;</span>
+<span class="s2">            Username: &lt;input name=&quot;username&quot; type=&quot;text&quot; /&gt;</span>
+<span class="s2">            Password: &lt;input name=&quot;password&quot;, type=&quot;password&quot;&gt;</span>
+<span class="s2">            &lt;input value=&quot;Login&quot; type=&quot;submit&quot; /&gt;</span>
+<span class="s2">        &lt;/form&gt;</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="nd">@myapp.post</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/login&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">check_login</span><span class="p">():</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_form_value</span><span class="p">(</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_form_value</span><span class="p">(</span><span class="s1">&#39;password&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">username</span><span class="p">:</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="n">username</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">if</span> <span class="n">password</span><span class="p">:</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">password</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="c1"># check login here</span>
+    <span class="k">if</span> <span class="n">is_log_success</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;p&gt; login success &lt;/p&gt;&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;p&gt;login failed!&lt;/p&gt;&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="static-file-label">
+<span id="id8"></span><h3>静态文件<a class="headerlink" href="#static-file-label" title="Permalink to this headline">¶</a></h3>
+<p>MyFramework支持静态文件托管，你可以将常用的css等文件调用此方法发送，若服务器支持sendfile系统调用，将提高
+托管静态文件的性能（或直接配置服务器发送静态文件）。此外，static_file还支持range，if_modified_since等
+提高文件传输性能的HTTP HEADER，因此使用静态文件可以获得较高的性能（而不是直接生成bytes数据）。以下是一个
+简单的静态文件发送示例：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframework.myframework</span> <span class="kn">import</span> <span class="n">static_file</span>
+
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/static/&lt;path:path&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">send_static_file</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">static_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">&quot;/path/to/your/staitc/file&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>虽然你可以使用相对路径指明path的根目录，但是注意project的目录和 <cite>./</cite> 不一定时刻都相同。</p>
+<p><cite>static_file</cite> 函数还有很多其他参数：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">static_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">mimetype</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">charset</span><span class="o">=</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">,</span> <span class="n">etag</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>filename： 指明请求中静态文件的路径</li>
+<li>root： 指明静态文件的根目录</li>
+<li><dl class="first docutils">
+<dt>mimetype：当mimetype为True时，使用mimetype模块猜测文件类型，当指定文件类型（字符串）时，使用指定的</dt>
+<dd>文件类型，之后添加到响应header的content-type首部中。</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>download： 当为True时，需要下载才能查看该文件，并使用系统文件名作为文件名，当为string时，指定下载的</dt>
+<dd>文件名为该值。False时，浏览器会直接解析某些文件格式并在浏览器中打开。</dd>
+</dl>
+</li>
+<li>charset： Content-Type首部中的编码</li>
+<li><dl class="first docutils">
+<dt>etag： 指定etag首部的内容，默认为None，使用该文件的Inode所在的设备，Inode编号，最后一次修改的时间、</dt>
+<dd>文件大小和filename的bytes哈希摘要作为Etag。</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="error-handle-label">
+<span id="id9"></span><h3>错误处理<a class="headerlink" href="#error-handle-label" title="Permalink to this headline">¶</a></h3>
+<p>当请求的路径不存在相关路由时，MyFramework将直接提供一个404 NotFound页面。你也可以自定义该页面的内容，
+使用error，abort，HttpError完成上述任务。简单示例如下：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframwork.myframwork</span> <span class="kn">import</span> <span class="n">error</span><span class="p">,</span> <span class="n">abort</span>
+<span class="kn">from</span> <span class="nn">myframwork.error</span> <span class="kn">import</span> <span class="n">HttpError</span>
+
+<span class="c1"># 使用error</span>
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/wiki/error&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">error_handle</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">error</span><span class="p">(</span><span class="mi">404</span><span class="p">,</span> <span class="s1">&#39;this page is missing, please check your url.&#39;</span><span class="p">)</span>
+
+<span class="c1"># 使用abort</span>
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/wiki/error2&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">error2_handle</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">abort</span><span class="p">(</span><span class="mi">404</span><span class="p">,</span> <span class="s1">&#39;there are not no place for no hero.&#39;</span><span class="p">)</span>
+
+<span class="c1"># 使用HttpError</span>
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/wiki/error3&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">error3_handle</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">HttpError</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="s1">&#39;ops, this is all i find.&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>事实上，error和abort函数只是对HttpError类的一个简单的包装，error函数包含状态码，短语，traceback三个参数，
+abort只包含前两个参数。HttpError初始化参数在error参数的基础上加了一个body参数，用来替换默认的body内容（
+状态码短语和trancback的文本展示）</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>MyFramework只有在本节使用的函数和类实例中使用错误处理，单独改变response对象的状态码并不会引发错误处理</li>
+<li>可以自定义HttpError对象，只要保证它继承自HttpError即可（status_code, body, phrase必须保留）</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="id10">
+<h2>路由返回值<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<p>自定义的路由函数可以返回多种数据类型，MyFramework可以将这些数据类型转换为相应的wsgi兼容对象（各式各样的bytes
+对象），下面实现详细的转换规则。</p>
+<div class="section" id="dict">
+<h3>dict: {}<a class="headerlink" href="#dict" title="Permalink to this headline">¶</a></h3>
+<p>字典会被默认转化为JSON类型，使用标准库中的JSON模块完成转换。同时将在response对象中添加响应的Content-Type
+内容。</p>
+</div>
+<div class="section" id="true-false-none-anything-is-not-true">
+<h3>&#8216;&#8217;, True/False, None, anything is not True<a class="headerlink" href="#true-false-none-anything-is-not-true" title="Permalink to this headline">¶</a></h3>
+<p>以上的所有值都会导致在Response对象中添加Content-Length首部并将其值设置为0。</p>
+</div>
+<div class="section" id="string-str-or-bytes">
+<h3>string: str or bytes<a class="headerlink" href="#string-str-or-bytes" title="Permalink to this headline">¶</a></h3>
+<p>所有的Python字符串对象都将被转化为bytes对象，Unicode字符串将根据request可以接受的编码编码为bytes对象。
+并添加响应的Content-Type和Content-Length头部。</p>
+</div>
+<div class="section" id="httperror-object">
+<h3>HttpError object<a class="headerlink" href="#httperror-object" title="Permalink to this headline">¶</a></h3>
+<p>返回该对象将引发错误处理，并替换响应的statuscode和header内容。</p>
+</div>
+<div class="section" id="file">
+<h3>File对象<a class="headerlink" href="#file" title="Permalink to this headline">¶</a></h3>
+<p>如果返回的对象有.read()方法，则被视为File对象，将使用wsgi.file_wrapper进行包装并返回到WSGI服务器
+服务器可能会对文件的发送进行优化（使用sendfile等系统调用），从而提高文件发送的性能。</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">可以直接返回文件对象，但是建议使用static_file，因为它提供了很多提高文件发送性能的优化，
+详见 <a class="reference internal" href="#static-file-label"><span class="std std-ref">静态文件</span></a></p>
+</div>
+</div>
+<div class="section" id="id11">
+<h3>迭代器和生成器<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<p>你还可以返回迭代器和生成器，只要返回或者生成的类型是上述数据类型即可。MyFramework会首先生成一个非空的值
+来确定数据类型，在处理后生成一个新的迭代器或者生成器回送到WSGI server。</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">根据WSGI规范，在生成第一个非空值之前就会发送header，之后对header的修改是无效的。</p>
+</div>
+</div>
+<div class="section" id="charset">
+<h3>改变charset<a class="headerlink" href="#charset" title="Permalink to this headline">¶</a></h3>
+<p>MyFramework使用Response对象中的charset属性决定如何编码Unicode字符串（默认使用utf-8）编码。因此你可以设置
+相关属性完成编码的设置。Content-Type可以使用response.content_type属性改变。</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframework.myframewor</span> <span class="kn">import</span> <span class="n">response</span>
+
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="s1">&#39;/charset/&lt;charset&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_charset</span><span class="p">(</span><span class="n">charset</span><span class="p">):</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">charset</span> <span class="o">=</span> <span class="n">charset</span>
+    <span class="k">return</span> <span class="s2">&quot;sending with {} encoding&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">charset</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">content-type用来发送到客户端，charset用来制定unicode字符串编码。当python的编码名称和RFC不符时，可以
+利用该属性，先设置content-type然后使用charset设置指定python使用的编码方案。</p>
+</div>
+</div>
+<div class="section" id="http">
+<h3>重定向和HTTP错误码<a class="headerlink" href="#http" title="Permalink to this headline">¶</a></h3>
+<p>你可以使用redirect函数完成重定向工作，该函数将设置response的状态码和相关首部，下面是一个简单的示例：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframwork.myframwork</span> <span class="kn">import</span> <span class="n">redirect</span>
+
+<span class="nd">@myapp.rout</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/redirect&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_redirect</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="s1">&#39;http://your/new/url&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>在代码中写入硬编码url显然不是个灵活的选择，MyFramework提供了url_for函数生成路由相关的url。</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/route&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;route_name&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_url_for</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;some code you want&#39;</span>
+
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/redirect&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_redirect</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">myapp</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;test_url_for&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>使用url_for的理由：</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li>url_for 函数将为你自动处理URL编码和/缺失问题；</li>
+<li>url_for 更加灵活，在修改路由函数路径信息时会一起更新</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="responsable-object">
+<h3>Responsable object<a class="headerlink" href="#responsable-object" title="Permalink to this headline">¶</a></h3>
+<p>所有响应内容的元数据都存储在 <cite>Response</cite> 对象中。线程局部的全局response变量可以用来引用和修改response的
+相关属性。也可以使用已经提供了的函数和方法完成。</p>
+</div>
+<div class="section" id="status-code">
+<h3>status code<a class="headerlink" href="#status-code" title="Permalink to this headline">¶</a></h3>
+<p>使用 <cite>response.status</cite> 属性可以直接修改响应对象的状态码，直接赋值整数状态码即可。该属性将自动生成标准的响应
+短语。默认值为 <a href="#id12"><span class="problematic" id="id13">`</span></a>200 OK`（意味着你可能很少需要手动操作该属性）</p>
+<p>你也可以使用 <a class="reference internal" href="#error-handle-label"><span class="std std-ref">错误处理</span></a> 来自定义需要的状态短语</p>
+</div>
+<div class="section" id="id14">
+<h3>响应头部<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<p>Response对象提供了一个 <cite>add_header</cite> 方法完成对header的添加和替换。该方法原型如下：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">add_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>header参数为需要添加的首部字段，value为其值，若unique指定为True，则将替换已经存在的同名header。</p>
+<p>类似的，你可以通过 <cite>get_header(header)</cite> 方法获取header值，也可以通过 <cite>del_header(header)</cite> 方法删除
+header。</p>
+</div>
+<div class="section" id="cookies">
+<span id="cookie-label"></span><h3>cookies<a class="headerlink" href="#cookies" title="Permalink to this headline">¶</a></h3>
+<p>Response对象也提供了对cookie的支持。使用Response对象的 <cite>set_cookie(name, value ...)</cite> 方法设置需要的
+cookie值。内部是用了python的simplecookie完成cookie的生成。参见
+<a class="reference external" href="https://docs.python.org/3/library/http.cookies.html">Simplecookie</a></p>
+<p>set_cookie 函数的参数和默认值如下：</p>
+<ul class="simple">
+<li>name: cookie名称</li>
+<li>value: cookie值</li>
+<li>path: (例如 &#8216;/&#8217;, &#8216;/mydir&#8217;) 如果没有定义，默认为当前文档位置的路径。</li>
+<li>domain: (例如 &#8216;example.com&#8217;， &#8216;.example.com&#8217; (包括所有子域名), &#8216;subdomain.example.com&#8217;) 如果没有定义，默认为当前文档位置的路径的域名部分。</li>
+<li>max-age: max-age-in-seconds (例如一年为60*60*24*365)</li>
+<li><dl class="first docutils">
+<dt>expires: date-in-GMTString-format 如果没有定义，cookie会在对话结束时过期</dt>
+<dd>这个值的格式参见Date.toUTCString()</dd>
+</dl>
+</li>
+<li>secure (cookie只通过https协议传输)</li>
+<li>version: 指定cookie的版本</li>
+<li><dl class="first docutils">
+<dt>httponly: True/False HttpOnly 属性限制了 cookie 对 HTTP 请求的作用范围。特别的，该属性指示用户代理</dt>
+<dd>忽略那些通过&#8221;非 HTTP&#8221; 方式对 cookie 的访问（比如浏览器暴露给js的接口）。
+注意 HttpOnly 属性和 Secure 属性相互独立：一个 cookie 既可以是 HttpOnly 的也可以有 Secure 属性。</dd>
+</dl>
+</li>
+<li>header: 默认值：&#8217;Set-Cookie&#8217;，自定义首部</li>
+<li>secret_key: cookie签名</li>
+<li>secret_level: 签名使用的算法，默认是hashlib.sha256</li>
+</ul>
+<p>通过Request对象提供的 <cite>cookie</cite> 属性（返回simplecookie实例）， <cite>get_cookie(cookie_name)</cite> 方法（返回
+具体该名称的cookie值）， <a href="#id15"><span class="problematic" id="id16">`</span></a>check_cookie(...)`方法（完成cookie的验证），完成对cookie的操作。</p>
+<p>该方法还支持其他具体的cookie属性设置，具体参见API文档。以下是两个简单的示例。</p>
+<ul>
+<li><p class="first">添加cookie</p>
+<blockquote>
+<div><div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframework.myframework</span> <span class="kn">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">response</span>
+
+<span class="c1"># 获取cookie</span>
+<span class="n">name_cookie</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_cookie</span><span class="p">(</span><span class="s1">&#39;cookie_name&#39;</span><span class="p">)</span>
+
+<span class="c1"># 获取simplecookie实例</span>
+<span class="n">sc_instance</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">cookie</span>
+
+<span class="c1"># 设置cookie</span>
+<span class="n">response</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<ul class="last simple">
+<li>Cookie的大小限制在4KB左右。超出该限制将无法完成cookie设置。</li>
+<li>若没有设置cookie，则 <cite>request.cookie</cite> 将抛出CookieNotExist错误，<a href="#id17"><span class="problematic" id="id18">`</span></a>request.get_cookie()`失败时也会抛出该错误，并指明用户指定的cookie名称。</li>
+</ul>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">signed cookie</p>
+<blockquote>
+<div><p>因为cookie保存在客户端，所以其安全性难以把控。签名cookie可以用来对cookie进行签名，生成值和摘要，通过
+服务器秘钥的检验即可保证cookie不被篡改。MyFramework通过标准库的http.cookie和hashlib模块支持cookie
+的签名和验证。在 <cite>response.set_cookie</cite> 参数中使用 <cite>secret_key=&#8217;your secret_key&#8217;</cite>
+和 <cite>secret_key</cite> （默认值为hashlib.sha256) 即可实现签名cookie。 <a href="#id19"><span class="problematic" id="id20">`</span></a>request.check_cookie`方法实现
+了对签名cookie的验证。</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframwork.utils</span> <span class="kn">import</span> <span class="n">check_cookie</span>
+<span class="nd">@myapp.route</span><span class="p">(</span><span class="s1">&#39;/check_cookie&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">check_cookie</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">cookie</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="s1">&#39;cookie_name&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">secret_key</span><span class="o">=</span><span class="s1">&#39;secret&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;hello world!&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">is_passed</span> <span class="o">=</span> <span class="n">check_cookie</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">cookie</span><span class="p">[</span><span class="s1">&#39;cookie_name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;secret&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_passed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;cookie check passed, hello friend&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;cookie check not pass, who are you?&#39;</span>
+</pre></div>
+</div>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">⚠️ 签名cookie仅仅对cookie进行了摘要，并没有对cookie进行加密，在cookie上承载敏感信息总是有巨大风险
+的。</p>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="id21">
+<h2>HTTP 工具<a class="headerlink" href="#id21" title="Permalink to this headline">¶</a></h2>
+<p>MyFramework 为HTTP请求数据进行了进一步的封装，提供一系列工具来访问相关信息。request和response作为全局
+变量完成了对HTTP请求和响应数据的封装。通过thead_local变量实现了对多线程访问的支持。因此这两个变量名都是
+本次请求的特定的request和response。</p>
+<div class="section" id="id22">
+<h3>cookies<a class="headerlink" href="#id22" title="Permalink to this headline">¶</a></h3>
+<p>Cookie的访问参见 <a class="reference internal" href="#cookie-label"><span class="std std-ref">cookies</span></a></p>
+</div>
+<div class="section" id="headers">
+<h3>headers<a class="headerlink" href="#headers" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>通过 <cite>request.headers</cite> 属性访问request对象的所有header，headers以字典形式给出（对wsgi</dt>
+<dd>环境变量的一个包装）</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>通过 <cite>response.get_header(headername)</cite> <cite>response.add_header(header, value, unique=False)</cite></dt>
+<dd><cite>response.del_header(header_name)</cite> 完成响应对象的首部的添加删除和获取。</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="query-variables">
+<h3>query variables<a class="headerlink" href="#query-variables" title="Permalink to this headline">¶</a></h3>
+<p>通过 <cite>request.query</cite> 属性可以获取一个查询字符串的字典，形如 {&#8216;query&#8217;: [&#8216;value&#8217;, ...] ...}。采用列表
+来保证多个相同名称的值可以得以保存。查询字符串已经完成了url解码。</p>
+<p>通过 <cite>request.query_str</cite> 属性可以获取一个查询字符串的python字符串表示，且已经完成url解码。</p>
+</div>
+<div class="section" id="form-data">
+<h3>form data<a class="headerlink" href="#form-data" title="Permalink to this headline">¶</a></h3>
+<p>通过 <cite>request.form</cite> 属性可以获取一个cgi FieldStorage 实例，其中包含了已经解析后的form属性。若不存在
+form则将抛出 <cite>AttributeError</cite> 错误。</p>
+<p>通过 <cite>request.get_form_value(value, default=None)</cite> 可以获取相关form的值，其中defalut参数指明了不存在
+该参数时返回的默认值。</p>
+<p>FieldStorage实例的具体使用请参考Python标准库：
+<a class="reference external" href="https://docs.python.org/3/library/cgi.html">FieldStorge</a></p>
+</div>
+<div class="section" id="file-uploads">
+<h3>file uploads<a class="headerlink" href="#file-uploads" title="Permalink to this headline">¶</a></h3>
+<p>通过 <cite>request.files</cite> 属性可以获取一个字典，形式如 {filename: FileUpload instance ...}. FileUpload
+类对form上传的文件进行了包装。添加了 <cite>filename</cite> 和 <cite>save</cite> 方法，若存在header可以通过 <cite>get_header</cite> 获取
+对应的name值。</p>
+<ul class="simple">
+<li>get_header(name, defualt=None): 获取form的header信息</li>
+<li>filename：返回filename</li>
+<li>save(destination, overwrite=False, chunk_size=2**16): destination为保存路径， overwrite指定在</li>
+</ul>
+<p>路径已经存在的情况下，是否覆盖同名文件。chunk_size指定复制文件时的块大小。</p>
+</div>
+<div class="section" id="json-data">
+<h3>JSON data<a class="headerlink" href="#json-data" title="Permalink to this headline">¶</a></h3>
+<p>使用 <cite>request.json</cite> 方法，获得解码之后的json数据（使用标准库的json解码成Python字典）</p>
+</div>
+<div class="section" id="request-body">
+<h3>Request body<a class="headerlink" href="#request-body" title="Permalink to this headline">¶</a></h3>
+<p>通过 <cite>request.body</cite> 方法访问body数据。返回值为一个BytesIO对象，其文件指针指向文件头部。</p>
+</div>
+<div class="section" id="wsgi-variables">
+<h3>WSGI variables<a class="headerlink" href="#wsgi-variables" title="Permalink to this headline">¶</a></h3>
+<p>通过 <cite>request.environ</cite> 属性返回一个 WSGI environment 字典。通过 <a href="#id23"><span class="problematic" id="id24">`</span></a>request.get_environ(item)`返回特定值。</p>
+</div>
+</div>
+</div>
+<div class="section" id="id25">
+<h1>模板<a class="headerlink" href="#id25" title="Permalink to this headline">¶</a></h1>
+<p>MyFramework使用模板引擎简化html的编写。默认的模板引擎为 <a class="reference external" href="http://www.makotemplates.org/">Mako</a> 。通过
+app实例的render_template方法可以返回模板文件并自定渲染和编码返回文件。</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nd">@myapp.route</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/test_template&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">test_template</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">myapp</span><span class="o">.</span><span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;base.html&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Mako&#39;</span><span class="p">,</span>
+        <span class="n">render_post</span><span class="o">=</span><span class="n">myapp</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;test_post&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>在项目主文件夹下新建一个文件夹命名为template，然后新建一个base.html文件。写入以下内容：</p>
+<div class="highlight-html"><div class="highlight"><pre><span></span><span class="p">&lt;</span><span class="nt">h1</span><span class="p">&gt;</span>hello<span class="p">&lt;/</span><span class="nt">h1</span><span class="p">&gt;</span>
+    ${name}
+<span class="p">&lt;</span><span class="nt">br</span><span class="p">&gt;</span>
+
+<span class="p">&lt;</span><span class="nt">a</span> <span class="na">href</span><span class="o">=</span><span class="s">&quot;http://www.dispensable.biz&quot;</span><span class="p">&gt;</span>my website<span class="p">&lt;/</span><span class="nt">a</span><span class="p">&gt;</span>
+
+<span class="p">&lt;</span><span class="nt">form</span> <span class="na">action</span><span class="o">=</span><span class="s">&quot;${rend_post}&quot;</span> <span class="na">method</span><span class="o">=</span><span class="s">&quot;post&quot;</span><span class="p">&gt;</span>
+    <span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>
+        choose your beans:
+        <span class="p">&lt;</span><span class="nt">select</span> <span class="na">name</span><span class="o">=</span><span class="s">&quot;beans&quot;</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">option</span> <span class="na">value</span><span class="o">=</span><span class="s">&quot;House Blend&quot;</span><span class="p">&gt;</span>House blend<span class="p">&lt;/</span><span class="nt">option</span><span class="p">&gt;</span>
+            <span class="p">&lt;</span><span class="nt">option</span> <span class="na">value</span><span class="o">=</span><span class="s">&quot;Bolivia&quot;</span><span class="p">&gt;</span>Bolivia<span class="p">&lt;/</span><span class="nt">option</span><span class="p">&gt;</span>
+        <span class="p">&lt;/</span><span class="nt">select</span><span class="p">&gt;</span>
+    <span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+
+    <span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>
+        Name: <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;text&quot;</span> <span class="na">name</span><span class="o">=</span><span class="s">&quot;name&quot;</span> <span class="na">value</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">&gt;&lt;</span><span class="nt">br</span><span class="p">&gt;</span>
+    <span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+
+    <span class="p">&lt;</span><span class="nt">p</span><span class="p">&gt;</span>
+        <span class="p">&lt;</span><span class="nt">input</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;submit&quot;</span> <span class="na">value</span><span class="o">=</span><span class="s">&quot;submit&quot;</span><span class="p">&gt;</span>
+    <span class="p">&lt;/</span><span class="nt">p</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id26">
+<h1>开发工具<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="debug">
+<h2>debug<a class="headerlink" href="#debug" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="reloader">
+<h2>reloader<a class="headerlink" href="#reloader" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="command-line-interface">
+<h2>command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="id27">
+<h2>部署<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">开发概览</a><ul>
+<li><a class="reference internal" href="#id2">快速起步</a></li>
+<li><a class="reference internal" href="#id5">请求路由</a><ul>
+<li><a class="reference internal" href="#id6">静态路由</a></li>
+<li><a class="reference internal" href="#filter-label">动态路由</a></li>
+<li><a class="reference internal" href="#http-method">HTTP METHOD</a></li>
+<li><a class="reference internal" href="#static-file-label">静态文件</a></li>
+<li><a class="reference internal" href="#error-handle-label">错误处理</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id10">路由返回值</a><ul>
+<li><a class="reference internal" href="#dict">dict: {}</a></li>
+<li><a class="reference internal" href="#true-false-none-anything-is-not-true">&#8216;&#8217;, True/False, None, anything is not True</a></li>
+<li><a class="reference internal" href="#string-str-or-bytes">string: str or bytes</a></li>
+<li><a class="reference internal" href="#httperror-object">HttpError object</a></li>
+<li><a class="reference internal" href="#file">File对象</a></li>
+<li><a class="reference internal" href="#id11">迭代器和生成器</a></li>
+<li><a class="reference internal" href="#charset">改变charset</a></li>
+<li><a class="reference internal" href="#http">重定向和HTTP错误码</a></li>
+<li><a class="reference internal" href="#responsable-object">Responsable object</a></li>
+<li><a class="reference internal" href="#status-code">status code</a></li>
+<li><a class="reference internal" href="#id14">响应头部</a></li>
+<li><a class="reference internal" href="#cookies">cookies</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id21">HTTP 工具</a><ul>
+<li><a class="reference internal" href="#id22">cookies</a></li>
+<li><a class="reference internal" href="#headers">headers</a></li>
+<li><a class="reference internal" href="#query-variables">query variables</a></li>
+<li><a class="reference internal" href="#form-data">form data</a></li>
+<li><a class="reference internal" href="#file-uploads">file uploads</a></li>
+<li><a class="reference internal" href="#json-data">JSON data</a></li>
+<li><a class="reference internal" href="#request-body">Request body</a></li>
+<li><a class="reference internal" href="#wsgi-variables">WSGI variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id25">模板</a></li>
+<li><a class="reference internal" href="#id26">开发工具</a><ul>
+<li><a class="reference internal" href="#debug">debug</a></li>
+<li><a class="reference internal" href="#reloader">reloader</a></li>
+<li><a class="reference internal" href="#command-line-interface">command line interface</a></li>
+<li><a class="reference internal" href="#id27">部署</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="config.html" title="previous chapter">框架配置选项</a></li>
+      <li>Next: <a href="plugin.html" title="next chapter">插件</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/use.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, dispensable.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/use.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

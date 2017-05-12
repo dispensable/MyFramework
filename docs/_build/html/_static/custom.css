@@ -1,0 +1,10 @@
+body {
+    line-height: 1.5;
+    margin: auto;
+    padding: 0px;
+    font-family: "DejaVu Sans", Arial, Helvetica, sans-serif;
+    font-size: smaller;
+    min-width: 59em;
+    max-width: 70em;
+    color: #333333;
+}

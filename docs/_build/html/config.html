@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>框架配置选项 &#8212; MyFramework 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="概览" href="use.html" />
+    <link rel="prev" title="安装 &amp; 运行" href="install.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="id1">
+<h1>框架配置选项<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id2">
+<h2>从命令行配置<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>运行myframework -h 可以查看所有帮助信息，使用相关选项可覆盖默认配置。各配置选项介绍见从配置文件配置</p>
+<div class="highlight-shell"><div class="highlight"><pre><span></span>$ myframework -h
+</pre></div>
+</div>
+</div>
+<div class="section" id="id3">
+<h2>从配置文件配置<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>使用以下命令指定配置文件</p>
+<div class="highlight-shell"><div class="highlight"><pre><span></span>$ myserver -c &lt;configfile&gt;
+</pre></div>
+</div>
+<p>配置文件为普通的python文件，你可以在`/MyFramework/myframework/config/default_conf.py`查看所有可配置项。
+配置文件应该是一个python模组。具体可配置选项如下：</p>
+<div class="section" id="bind">
+<h3>bind<a class="headerlink" href="#bind" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: &#8216;127.0.0.1:8080&#8217;</p>
+<p>可选值: ipv4地址</p>
+<p>说明: 指定web服务器绑定的端口</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">bind</span> <span class="o">=</span> <span class="s1">&#39;127.0.0.1:8080&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="conf">
+<h3>conf<a class="headerlink" href="#conf" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: &#8216;default&#8217;</p>
+<p>可选值: 配置文件目录</p>
+<p>说明: default表示使用默认配置</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">conf</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="debug">
+<h3>debug<a class="headerlink" href="#debug" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: False</p>
+<p>可选值: True/False</p>
+<p>说明: 是否启用debug模式（更多的错误输出）</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">debug</span> <span class="o">=</span> <span class="bp">False</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="param">
+<h3>param<a class="headerlink" href="#param" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: {}</p>
+<p>可选值: 字典（在使用命令行时，使用键值对列表 <cite>name=value name=value ...</cite></p>
+<p>说明: 需要覆盖的配置选项</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">param</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="plugin">
+<h3>plugin<a class="headerlink" href="#plugin" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: []</p>
+<p>可选值: 需要启用的插件</p>
+<p>说明: 根据列表中指示的插件模组和模组名称载入模组（默认在全局启用）</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">plugin</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;plugin_module:plugin_name&#39;</span><span class="o">...</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reload">
+<h3>reload<a class="headerlink" href="#reload" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: False</p>
+<p>可选值: True/False</p>
+<p>说明: 是否启用自动重载</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="nb">reload</span> <span class="o">=</span> <span class="bp">False</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="server">
+<h3>server<a class="headerlink" href="#server" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: &#8216;wsgiref&#8217;</p>
+<p>可选值: server adaptor 名称（默认为wsgiref服务器）</p>
+<p>说明: 此配置选项用来选择托管的服务器</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">server</span> <span class="o">=</span> <span class="s1">&#39;myserver&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="version">
+<h3>version<a class="headerlink" href="#version" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: False</p>
+<p>可选值: True/False</p>
+<p>说明: 显示版本号</p>
+</div></blockquote>
+</div>
+<div class="section" id="reloader">
+<h3>reloader<a class="headerlink" href="#reloader" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>默认值: &#8216;auto&#8217;</p>
+<p>可选值: &#8216;inotify&#8217;/&#8217;poll&#8217;</p>
+<p>说明: reloader引擎的名称（需要系统平台支持）auto自动选择reloader（若支持inotify则启用inotify）</p>
+<p>示例:</p>
+</div></blockquote>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">reloader</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">框架配置选项</a><ul>
+<li><a class="reference internal" href="#id2">从命令行配置</a></li>
+<li><a class="reference internal" href="#id3">从配置文件配置</a><ul>
+<li><a class="reference internal" href="#bind">bind</a></li>
+<li><a class="reference internal" href="#conf">conf</a></li>
+<li><a class="reference internal" href="#debug">debug</a></li>
+<li><a class="reference internal" href="#param">param</a></li>
+<li><a class="reference internal" href="#plugin">plugin</a></li>
+<li><a class="reference internal" href="#reload">reload</a></li>
+<li><a class="reference internal" href="#server">server</a></li>
+<li><a class="reference internal" href="#version">version</a></li>
+<li><a class="reference internal" href="#reloader">reloader</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="install.html" title="previous chapter">安装 &amp; 运行</a></li>
+      <li>Next: <a href="use.html" title="next chapter">概览</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/config.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, dispensable.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/config.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

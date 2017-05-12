@@ -571,20 +571,138 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 <span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
 </pre></div>
 </div>
+<p>通过指定 <cite>render_template</cite> tempalte_plugin 参数，可以替换模板引擎，默认为MakoTemplatePlugin。通过
+<cite>template_dir</cite> 参数可以指定模板文件的位置。其余关键字参数都会原封不动的传入Template类通过template插件
+传入相应的模板引擎。</p>
+<p>框架内置Mako模板插件，通过插件完成模板渲染的功能。插件的开发和模板替换详见插件章节。</p>
 </div>
 <div class="section" id="id26">
 <h1>开发工具<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h1>
+<p>MyFramework内置了几个工具方便web开发，主要有：</p>
 <div class="section" id="debug">
 <h2>debug<a class="headerlink" href="#debug" title="Permalink to this headline">¶</a></h2>
+<p>debug模式下，app中发生的错误会直接抛出，方便调试和开发。通过在run()函数中指定debug参数为True，或者在命令行
+界面中指定 <cite>&#8211;debug</cite> 选项亦可开启。</p>
 </div>
 <div class="section" id="reloader">
 <h2>reloader<a class="headerlink" href="#reloader" title="Permalink to this headline">¶</a></h2>
+<p>作用： 在配置文件或者代码修改之后自动重启服务器。</p>
+<p>通过命令行或者run()函数中指定reloader参数启用，reloader参数为False时不启用，&#8217;auto&#8217;自动选择reloder引擎，
+&#8216;inotify&#8217;选择linux特有的inotify调用，&#8217;poll&#8217;使用传统的线程模式完成重启。</p>
 </div>
 <div class="section" id="command-line-interface">
 <h2>command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="usage">
+<h3>Usage:<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>myframework [options] [-C &lt;KEY=VALUE&gt;...] [-p &lt;PLUGIN&gt;...] &lt;package.module:app&gt;</div></blockquote>
+</div>
+<div class="section" id="options">
+<h3>Options:<a class="headerlink" href="#options" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="50%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">CLI OPTION</th>
+<th class="head">Instruction</th>
+<th class="head">Default value</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>-h, &#8211;help</td>
+<td>show this help message and exit</td>
+<td>None</td>
+</tr>
+<tr class="row-odd"><td>&#8211;version</td>
+<td>show version number.</td>
+<td>None</td>
+</tr>
+<tr class="row-even"><td>-b ADDRESS &#8211;bind=ADDRESS</td>
+<td>bind socket to ADDRESS.</td>
+<td>127.0.0.1:8080</td>
+</tr>
+<tr class="row-odd"><td>-s SERVER &#8211;server=SERVER</td>
+<td>use SERVER as backend.</td>
+<td>myserver</td>
+</tr>
+<tr class="row-even"><td><p class="first">-p &lt;PLUGINMODULE:PLUGINNAME&gt;
+&#8211;plugin=&lt;PLUGINMODULE:</p>
+<blockquote class="last">
+<div>PLUGINNAME&gt;</div></blockquote>
+</td>
+<td>install additional plugin/s.</td>
+<td>None</td>
+</tr>
+<tr class="row-odd"><td>-c FILE &#8211;conf=FILE</td>
+<td>load config values from FILE.</td>
+<td>default</td>
+</tr>
+<tr class="row-even"><td>-C &lt;NAME=VALUE&gt;
+&#8211;param=&lt;NAME=VALUE&gt;</td>
+<td>override config values.</td>
+<td>None</td>
+</tr>
+<tr class="row-odd"><td>&#8211;debug</td>
+<td>start server in debug mode.</td>
+<td>False</td>
+</tr>
+<tr class="row-even"><td>&#8211;reload</td>
+<td>auto-reload on file changes.</td>
+<td>False</td>
+</tr>
+<tr class="row-odd"><td>&#8211;reloader RELOADER</td>
+<td>choose reloader (auto, poll, inotify).</td>
+<td>auto</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div class="section" id="id27">
 <h2>部署<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h2>
+<p>通过run()函数可以快速的使用内置的测试服务器，方便开发。run函数有很多参数，说明之前首先看一个示例：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframework.myframework</span> <span class="kn">import</span> <span class="n">run</span>
+<span class="c1"># all the app code</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">app</span><span class="o">=</span><span class="n">myapp</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">8080</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="s1">&#39;wsgiref&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>直接运行该模组，就可以看到启动的效果了。</p>
+<p>run函数的参数列表如下：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">app</span><span class="p">,</span>
+    <span class="n">host</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>
+    <span class="n">port</span><span class="o">=</span><span class="mi">8000</span><span class="p">,</span>
+    <span class="n">server</span><span class="o">=</span><span class="s1">&#39;wsgiref&#39;</span><span class="p">,</span>
+    <span class="n">interval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">quiet</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+    <span class="n">reloader</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+    <span class="n">plugins</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+    <span class="n">debug</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>app: 指定app示例</li>
+<li>host： 指定服务器绑定的IP地址</li>
+<li>port： 指定服务器绑定的端口</li>
+<li><dl class="first docutils">
+<dt>server： 指定server adaptor，默认使用wsgiref服务器（Python的wsgi参考服务器）框架还内置了&#8217;myserver&#8217;适配器，</dt>
+<dd>其他适配器正在开发中，你也可以根据api自定义服务器适配器，从而启用自己的开发服务器。</dd>
+</dl>
+</li>
+<li>interval： 轮询时间</li>
+<li>quiet： 是否输出错误</li>
+<li>reloader： 重载引擎</li>
+<li>plugins: 要启用的插件，若指定，应为列表</li>
+<li>debug： 是否开启debug模式</li>
+<li>config： 需要为覆盖的框架配置</li>
+<li>kwargs： 其余关键字参数，原封不动的传入到server适配器中。</li>
+</ul>
 </div>
 </div>
 
@@ -638,7 +756,11 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 <li><a class="reference internal" href="#id26">开发工具</a><ul>
 <li><a class="reference internal" href="#debug">debug</a></li>
 <li><a class="reference internal" href="#reloader">reloader</a></li>
-<li><a class="reference internal" href="#command-line-interface">command line interface</a></li>
+<li><a class="reference internal" href="#command-line-interface">command line interface</a><ul>
+<li><a class="reference internal" href="#usage">Usage:</a></li>
+<li><a class="reference internal" href="#options">Options:</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#id27">部署</a></li>
 </ul>
 </li>

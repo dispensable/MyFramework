@@ -71,5 +71,10 @@ def form_test():
     response.status_code = 201
     return 'test'
 
+
+@wsgi_app.route(r'/test_url_for')
+def test_url_for():
+    return redirect(wsgi_app.url_for('form_test'))
+
 if __name__ == '__main__':
     run(app=wsgi_app, port=8080, server='myserver')

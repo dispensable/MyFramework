@@ -40,8 +40,17 @@ class Router(object):
             # 动态路由匹配
             is_match = re.match(route.path, env_path)
             if is_match:
-                return route, is_match.groupdict()
+                return route, self._trans_int_float_value(route, is_match.groupdict())
         raise RouteNotFoundException(env_path, method)
+
+    def _trans_int_float_value(self, route, v_dict):
+        """ trans int and float filter value to python value """
+        f_i_dict = route.int_float_argvs
+
+        for v_name, v_type in f_i_dict.items():
+            v_dict[v_name] = int(v_dict[v_name]) if v_type == 'int' else float(v_dict[v_name])
+
+        return v_dict
 
     def add_filter(self, filter_name, re_rule):
         """ Add a new filter to the route class.
@@ -64,6 +73,7 @@ class Route(object):
         self.plugin_list = apply_list or []
         self.skip = skip or []
         self.config = config
+        self.int_float_argvs = {}
         self.trans_to_re()
 
     @CachedProperty
@@ -153,8 +163,16 @@ class Route(object):
             if f == 're':
                 re_rule = r'(?P<{name}>{rule})'.format(name=name, rule=rule[0])
             else:
+
+                # 保存int和float filter的信息，用来进行强制类型转换
+                if f == 'int':
+                    self._add_int_float_value('int', name)
+                if f == 'float':
+                    self._add_int_float_value('float', name)
+
+                # 替换filter为re正则表达式
                 r = self.filter_pattern.get(f)
-                if f:
+                if r:
                     re_rule = r.format(name=name)
                 else:
                     raise UnknownFilterException(f)
@@ -164,6 +182,12 @@ class Route(object):
             # 替换为新re
             path = path.replace(old_re, re_rule)
         return path
+
+    def _add_int_float_value(self, v_type, value_name):
+        """ 在解析path路径时，将int和float的变量名称保存起来之后转为相应类型 """
+        if v_type not in ('int', 'float'):
+            raise TypeError('Neet int or float string not {}'.format(v_type))
+        self.int_float_argvs[value_name] = v_type
 
     def __str__(self):
         return '<Route for path: {}>'.format(self.path)

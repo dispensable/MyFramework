@@ -45,6 +45,8 @@ wsgi_app.add_filter('alpha', r'[a-zA-Z]+')
 
 @wsgi_app.route(r'/test/<name:int>/<test:float>/<this:alpha>')
 def test2(name, test, this):
+    assert isinstance(name, int)
+    assert isinstance(test, float)
     return '{}:{}:{}'.format(name, test, this)
 
 

@@ -1,0 +1,372 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>myframework.request &#8212; MyFramework 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for myframework.request</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">from</span> <span class="nn">cgi</span> <span class="k">import</span> <span class="n">FieldStorage</span>
+<span class="kn">from</span> <span class="nn">http.cookies</span> <span class="k">import</span> <span class="n">SimpleCookie</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span>
+<span class="kn">from</span> <span class="nn">json</span> <span class="k">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">JSONDecodeError</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="k">import</span> <span class="n">TemporaryFile</span>
+<span class="kn">from</span> <span class="nn">urllib</span> <span class="k">import</span> <span class="n">parse</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">unquote</span>
+
+<span class="kn">from</span> <span class="nn">myframework.error</span> <span class="k">import</span> <span class="n">HttpError</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">FileUpload</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">LocalVar</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">check_cookie</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">CachedProperty</span>
+<span class="kn">from</span> <span class="nn">.error</span> <span class="k">import</span> <span class="n">CookieNotExist</span>
+
+
+<div class="viewcode-block" id="Request"><a class="viewcode-back" href="../../myframework.html#myframework.request.Request">[docs]</a><span class="k">class</span> <span class="nc">Request</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A WSGI environ warper so we can easily access request property&quot;&quot;&quot;</span>
+
+    <span class="n">MEMFILE_MAX</span> <span class="o">=</span> <span class="mi">102400</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environ</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">environ</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">environ</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;myframework.request&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">unquote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH_INFO&#39;</span><span class="p">])</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">headers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CONTENT-LENGTH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">headers</span><span class="p">[</span><span class="s1">&#39;content-type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CONTENT-TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;HTTP_&#39;</span><span class="p">):</span>
+                <span class="n">headers</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">headers</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">cookie</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; 返回SIMPLECOOKIE生成的SimpleCookie实例&quot;&quot;&quot;</span>
+        <span class="n">cookie</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_COOKIE&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cookie</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">SimpleCookie</span><span class="p">(</span><span class="n">cookie</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">CookieNotExist</span><span class="p">(</span><span class="s1">&#39;Rquest object&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Request.check_cookie"><a class="viewcode-back" href="../../myframework.html#myframework.request.Request.check_cookie">[docs]</a>    <span class="k">def</span> <span class="nf">check_cookie</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cookie</span><span class="p">,</span> <span class="n">secret</span><span class="p">,</span> <span class="n">secret_level</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">check_cookie</span><span class="p">(</span><span class="n">cookie</span><span class="p">,</span> <span class="n">secret_key</span><span class="o">=</span><span class="n">secret</span><span class="p">,</span> <span class="n">secret_level</span><span class="o">=</span><span class="n">secret_level</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Request.get_cookie"><a class="viewcode-back" href="../../myframework.html#myframework.request.Request.get_cookie">[docs]</a>    <span class="k">def</span> <span class="nf">get_cookie</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cookie_name</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cookie</span><span class="p">[</span><span class="n">cookie_name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">except</span> <span class="n">CookieNotExist</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CookieNotExist</span><span class="p">(</span><span class="n">cookie_name</span><span class="p">)</span></div>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">method</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;REQUEST_METHOD&#39;</span><span class="p">]</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">query_str</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">unquote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;QUERY_STRING&#39;</span><span class="p">])</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">parsed_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; 返回一个query字典 形式如 {&#39;q&#39;: [&#39;a&#39;],...}</span>
+<span class="sd">            [] 用来指定多次指定相同参数的情况</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">parse</span><span class="o">.</span><span class="n">parse_qs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query_str</span><span class="p">)</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">environ</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; 返回一个wsgi environ字典的副本 &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">json_header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_CONTENT_TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;application/json&#39;</span> <span class="ow">in</span> <span class="n">json_header</span><span class="p">)</span> <span class="ow">or</span> \
+            <span class="p">(</span><span class="s1">&#39;application/json-rpc&#39;</span> <span class="ow">in</span> <span class="n">json_header</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># TODO: 替换为400错误</span>
+                <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">except</span> <span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Not json body !&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_body_iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">read</span><span class="p">,</span> <span class="n">bufsize</span><span class="p">):</span>
+        <span class="n">maxread</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_length</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">maxread</span><span class="p">:</span>
+            <span class="n">part</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">maxread</span><span class="p">,</span> <span class="n">bufsize</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">part</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">yield</span> <span class="n">part</span>
+            <span class="n">maxread</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_chunked_iter</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">bufsize</span><span class="p">):</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">HttpError</span><span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="s2">&quot;Error while paring chunked transfer body.&quot;</span><span class="p">)</span>
+        <span class="n">rn</span><span class="p">,</span> <span class="n">sem</span><span class="p">,</span> <span class="n">bs</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">header</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">rn</span><span class="p">:</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">header</span> <span class="o">+=</span> <span class="n">c</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">err</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">bufsize</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">err</span>
+            <span class="n">size</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="n">sem</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">maxread</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">size</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+            <span class="k">if</span> <span class="n">maxread</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">buff</span> <span class="o">=</span> <span class="n">bs</span>
+            <span class="k">while</span> <span class="n">maxread</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">buff</span><span class="p">:</span>
+                    <span class="n">buff</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">maxread</span><span class="p">,</span> <span class="n">bufsize</span><span class="p">))</span>
+                <span class="n">part</span><span class="p">,</span> <span class="n">buff</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[:</span><span class="n">maxread</span><span class="p">],</span> <span class="n">buff</span><span class="p">[</span><span class="n">maxread</span><span class="p">:]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">part</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">err</span>
+                <span class="k">yield</span> <span class="n">part</span>
+                <span class="n">maxread</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">!=</span> <span class="n">rn</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">err</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">body</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; 返回一个 BytesIO 对象， 后续访问只seek（0）后返回&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">read_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.input&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">read</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.input&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.input&#39;</span><span class="p">]</span>
+        <span class="n">body_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chunked_iter</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunked</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_body_iter</span>
+        <span class="n">body</span><span class="p">,</span> <span class="n">body_size</span><span class="p">,</span> <span class="n">is_temp_file</span> <span class="o">=</span> <span class="n">BytesIO</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">body_iter</span><span class="p">(</span><span class="n">read_func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MEMFILE_MAX</span><span class="p">):</span>
+            <span class="n">body</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+            <span class="n">body_size</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_temp_file</span> <span class="ow">and</span> <span class="n">body_size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">MEMFILE_MAX</span><span class="p">:</span>
+                <span class="n">body</span><span class="p">,</span> <span class="n">tmp</span> <span class="o">=</span> <span class="n">TemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w+b&#39;</span><span class="p">),</span> <span class="n">body</span>
+                <span class="n">body</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+                <span class="k">del</span> <span class="n">tmp</span>
+                <span class="n">is_temp_file</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.input&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">body</span>
+        <span class="n">body</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">body</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">chunked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_TRANSFER_ENCODING&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;chunked&#39;</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;wsgi.url_scheme&#39;</span><span class="p">]</span>
+        <span class="n">host</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_HOST&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">path_info</span> <span class="o">=</span> <span class="n">unquote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH_INFO&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">host</span><span class="p">:</span>
+            <span class="n">server_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;SERVER_NAME&#39;</span><span class="p">]</span>
+            <span class="n">server_port</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;SERVER_PORT&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">schema</span><span class="p">,</span> <span class="s1">&#39;://&#39;</span><span class="p">,</span> <span class="n">server_name</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">server_port</span><span class="p">,</span> <span class="n">path_info</span><span class="p">])</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">schema</span><span class="p">,</span> <span class="s1">&#39;://&#39;</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">path_info</span><span class="p">])</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">script_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;SCRIPT_NAME&#39;</span><span class="p">]</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">is_xhr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; True if the request was triggered by a XMLHttpRequest. This only</span>
+<span class="sd">            works with JavaScript libraries that support the `X-Requested-With`</span>
+<span class="sd">            header (most of the popular libraries do). &quot;&quot;&quot;</span>
+        <span class="n">requested_with</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_X_REQUESTED_WITH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">requested_with</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;xmlhttprequest&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_ajax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_xhr</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">auth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">auth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HTTP_AUTHORIZATION&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">auth</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">auth</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">content_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CONTENT_TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">content_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CONTENT_LENGTH&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">length</span><span class="p">)</span> <span class="k">if</span> <span class="n">length</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">form</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; use cgi fieldstorage 解析 multipart body and return a FileStorage object&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span> <span class="ow">and</span> \
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">content_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;MULTIPART/&#39;</span><span class="p">)</span> <span class="ow">or</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">content_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;APPLICATION/&#39;</span><span class="p">)):</span>
+            <span class="n">form</span> <span class="o">=</span> <span class="n">FieldStorage</span><span class="p">(</span><span class="n">fp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="p">,</span> <span class="n">keep_blank_values</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">form</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Can not parse form data. May form not exists.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; from forms parse FileUpload file instance and</span>
+<span class="sd">         return a dict {filename: FileUpload instance}&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">field_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">field_list</span> <span class="o">=</span> <span class="n">field_list</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">field_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+                <span class="n">files</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">FileUpload</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
+                                               <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">files</span>
+
+<div class="viewcode-block" id="Request.get_form_value"><a class="viewcode-back" href="../../myframework.html#myframework.request.Request.get_form_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_form_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get form value from forms</span>
+<span class="sd">        :param value: form name</span>
+<span class="sd">        :param default: if form name field not exists, use this default value to avoid error</span>
+<span class="sd">        :return: FieldStorage instance or MiniFieldStorage instance with these attrs in f:</span>
+<span class="sd">        f.name -&gt; field name</span>
+<span class="sd">        f.filename -&gt; client filesystem filename when upload it</span>
+<span class="sd">        f.value -&gt; string value</span>
+<span class="sd">        f.file -&gt; filelike object</span>
+<span class="sd">        f.type -&gt; content type</span>
+<span class="sd">        f.type_options -&gt; 在HTTP请求行的内容类型行指定的选项字典</span>
+<span class="sd">        f.headers -&gt; headers</span>
+<span class="sd">        see: https://hg.python.org/cpython/file/2.7/Lib/cgi.py</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="Request.get_environ"><a class="viewcode-back" href="../../myframework.html#myframework.request.Request.get_environ">[docs]</a>    <span class="k">def</span> <span class="nf">get_environ</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">env_item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> not exist.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">env_item</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_item</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Request.parse_range_header"><a class="viewcode-back" href="../../myframework.html#myframework.request.Request.parse_range_header">[docs]</a>    <span class="k">def</span> <span class="nf">parse_range_header</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Yield (start, end) ranges parsed from a HTTP Range header. Skip</span>
+<span class="sd">            unsatisfiable ranges. The end index is non-inclusive.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">header</span> <span class="ow">or</span> <span class="n">header</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;bytes=&#39;</span><span class="p">:</span> <span class="k">return</span>
+        <span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">header</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;-&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">start</span><span class="p">:</span>  <span class="c1"># bytes=-100    -&gt; last 100 bytes</span>
+                    <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">end</span><span class="p">)),</span> <span class="n">maxlen</span>
+                <span class="k">elif</span> <span class="ow">not</span> <span class="n">end</span><span class="p">:</span>  <span class="c1"># bytes=100-    -&gt; all but the first 99 bytes</span>
+                    <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">maxlen</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># bytes=100-200 -&gt; bytes 100-200 (inclusive)</span>
+                    <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">end</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">)</span>
+                <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">end</span> <span class="o">&lt;=</span> <span class="n">maxlen</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="RequestWrapper"><a class="viewcode-back" href="../../myframework.html#myframework.request.RequestWrapper">[docs]</a><span class="k">class</span> <span class="nc">RequestWrapper</span><span class="p">(</span><span class="n">Request</span><span class="p">):</span>
+    <span class="n">environ</span> <span class="o">=</span> <span class="n">LocalVar</span><span class="p">()</span>
+    <span class="n">init</span> <span class="o">=</span> <span class="n">Request</span><span class="o">.</span><span class="fm">__init__</span></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, dispensable.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

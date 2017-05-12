@@ -1,0 +1,297 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>myframework.response &#8212; MyFramework 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for myframework.response</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">from</span> <span class="nn">http.cookies</span> <span class="k">import</span> <span class="n">SimpleCookie</span>
+
+<span class="kn">from</span> <span class="nn">myframework.error</span> <span class="k">import</span> <span class="n">HeaderNotAllowed</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">HTTP_CODES</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">LocalVar</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">sig_cookie</span>
+
+
+<div class="viewcode-block" id="Response"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response">[docs]</a><span class="k">class</span> <span class="nc">Response</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">default_status_code</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">default_content_type</span> <span class="o">=</span> <span class="s1">&#39;text/html; charset=UTF-8&#39;</span>
+
+    <span class="c1"># https://www.ietf.org/rfc/rfc2616.txt 10.2 etc.</span>
+    <span class="n">blacklist_headers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">204</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;Content-Length&#39;</span><span class="p">)),</span>
+        <span class="mi">304</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s1">&#39;Allow&#39;</span><span class="p">,</span> <span class="s1">&#39;Content-Encoding&#39;</span><span class="p">,</span> <span class="s1">&#39;Content-Language&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;Content-Length&#39;</span><span class="p">,</span> <span class="s1">&#39;Content-Range&#39;</span><span class="p">,</span> <span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;Content-Md5&#39;</span><span class="p">,</span> <span class="s1">&#39;Last-Modified&#39;</span><span class="p">))</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">status_code</span> <span class="ow">or</span> <span class="n">Response</span><span class="o">.</span><span class="n">default_status_code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_phrase</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">headers</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">+=</span> <span class="n">headers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">body</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="n">Response</span><span class="o">.</span><span class="n">default_content_type</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Response.add_header"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.add_header">[docs]</a>    <span class="k">def</span> <span class="nf">add_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Header name should be string get </span><span class="si">{!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">header</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Header value should be string get </span><span class="si">{!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">unique</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">del_header</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="n">Response</span><span class="o">.</span><span class="n">blacklist_headers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">header</span> <span class="ow">in</span> <span class="n">Response</span><span class="o">.</span><span class="n">blacklist_headers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="n">HeaderNotAllowed</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">header</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Response.del_header"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.del_header">[docs]</a>    <span class="k">def</span> <span class="nf">del_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">header</span><span class="p">):</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">header_copy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">header_copy</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">header</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Response.get_header"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.get_header">[docs]</a>    <span class="k">def</span> <span class="nf">get_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">header</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; get header return (header, value) tuple&quot;&quot;&quot;</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">header</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">h</span></div>
+
+<div class="viewcode-block" id="Response.add_body"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.add_body">[docs]</a>    <span class="k">def</span> <span class="nf">add_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">body</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">charset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">content_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header</span><span class="p">(</span><span class="s1">&#39;content-type&#39;</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">charset</span> <span class="o">=</span> <span class="n">content_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;charset=&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">charset</span>
+
+    <span class="nd">@charset</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">charset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoding</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoding</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;encoding should be str get {!s]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">encoding</span><span class="p">))</span>
+        <span class="n">h_and_v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header</span><span class="p">(</span><span class="s1">&#39;content-type&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">h_and_v</span><span class="p">:</span>
+            <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">h_and_v</span>
+            <span class="n">rest</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;charset=&#39;</span><span class="p">)</span>
+            <span class="n">new_h</span><span class="p">,</span> <span class="n">new_v</span> <span class="o">=</span> <span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="n">rest</span> <span class="o">+</span> <span class="s1">&#39;charset=&#39;</span> <span class="o">+</span> <span class="n">encoding</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">del_header</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="n">new_h</span><span class="p">,</span> <span class="n">new_v</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">status_line</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">status_code</span><span class="p">),</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_phrase</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span>
+
+    <span class="nd">@status</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">code</span><span class="p">,</span> <span class="n">phrase</span> <span class="o">=</span> <span class="n">code</span><span class="p">,</span> <span class="n">HTTP_CODES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">code</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;Unknown&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39; &#39;</span> <span class="ow">in</span> <span class="n">code</span><span class="p">:</span>
+            <span class="n">code</span><span class="p">,</span> <span class="n">phrase</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">code</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;status should be &quot;code status&quot;, not </span><span class="si">{!s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">code</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="ow">or</span> <span class="n">code</span> <span class="o">&gt;</span> <span class="mi">999</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;status code </span><span class="si">{!s}</span><span class="s1"> our of range&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status_phrase</span> <span class="o">=</span> <span class="n">phrase</span>
+
+<div class="viewcode-block" id="Response.set_cookie"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.set_cookie">[docs]</a>    <span class="k">def</span> <span class="nf">set_cookie</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expires</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">secure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">httponly</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="s1">&#39;Set-Cookie&#39;</span><span class="p">,</span> <span class="n">secret_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">secret_level</span><span class="o">=</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; set cookie in the header</span>
+<span class="sd">            :param name: cookie name (str type and can not use reserved key)</span>
+<span class="sd">            :param value: cookie value</span>
+<span class="sd">            :return: None</span>
+<span class="sd">            see: https://www.ietf.org/rfc/rfc2965.txt</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">temp_cookie</span> <span class="o">=</span> <span class="n">SimpleCookie</span><span class="p">()</span>
+
+        <span class="c1"># set cookie name: value</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cookie name </span><span class="si">{!s}</span><span class="s2"> should be str&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">secret_key</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cookie value should be string&quot;</span><span class="p">)</span>
+
+            <span class="n">value</span> <span class="o">=</span> <span class="n">sig_cookie</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">secret_key</span><span class="p">,</span> <span class="n">secret_level</span><span class="p">)</span>
+
+        <span class="n">temp_cookie</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="c1">#  set property for this cookie</span>
+        <span class="n">this_cookie</span> <span class="o">=</span> <span class="n">temp_cookie</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">expires</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;expires&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">expires</span>
+        <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">if</span> <span class="n">comment</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment</span>
+        <span class="k">if</span> <span class="n">domain</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;domain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">domain</span>
+        <span class="k">if</span> <span class="n">max_age</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;max_age&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_age</span>
+        <span class="k">if</span> <span class="n">secure</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;secure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">secure</span>
+        <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;version&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="k">if</span> <span class="n">httponly</span><span class="p">:</span>
+            <span class="n">this_cookie</span><span class="p">[</span><span class="s1">&#39;httponly&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">httponly</span>
+
+        <span class="c1"># add cookie to the headers</span>
+        <span class="n">cookie_str</span> <span class="o">=</span> <span class="n">temp_cookie</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">)</span>
+        <span class="n">header_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="n">cookie_str</span><span class="p">[:</span><span class="n">header_len</span><span class="p">],</span> <span class="n">cookie_str</span><span class="p">[</span><span class="n">header_len</span><span class="p">:])</span></div>
+
+<div class="viewcode-block" id="Response.del_cookie"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.del_cookie">[docs]</a>    <span class="k">def</span> <span class="nf">del_cookie</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        delete cookie</span>
+<span class="sd">        :param name: same name as you set</span>
+<span class="sd">        :param path: same path as you set</span>
+<span class="sd">        :param domain: same domain as you set</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">expires</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Response.close"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">content_len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header</span><span class="p">(</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">)</span>
+
+    <span class="nd">@content_len</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">content_len</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Content length must be int, get </span><span class="si">{!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;Content-Length&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">content_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">)</span>
+
+    <span class="nd">@content_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">content_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Content type must be string, get </span><span class="si">{!s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Response.iter_file_range"><a class="viewcode-back" href="../../myframework.html#myframework.response.Response.iter_file_range">[docs]</a>    <span class="k">def</span> <span class="nf">iter_file_range</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">maxread</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">20</span><span class="p">):</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+        <span class="k">while</span> <span class="nb">bytes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">part</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">maxread</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">part</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="nb">bytes</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">part</span></div></div>
+
+<div class="viewcode-block" id="ResponseWrapper"><a class="viewcode-back" href="../../myframework.html#myframework.response.ResponseWrapper">[docs]</a><span class="k">class</span> <span class="nc">ResponseWrapper</span><span class="p">(</span><span class="n">Response</span><span class="p">):</span>
+    <span class="n">init</span> <span class="o">=</span> <span class="n">Response</span><span class="o">.</span><span class="fm">__init__</span>
+    <span class="n">status_code</span> <span class="o">=</span> <span class="n">LocalVar</span><span class="p">()</span>
+    <span class="n">status_phrase</span> <span class="o">=</span> <span class="n">LocalVar</span><span class="p">()</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="n">LocalVar</span><span class="p">()</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="n">LocalVar</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, dispensable.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

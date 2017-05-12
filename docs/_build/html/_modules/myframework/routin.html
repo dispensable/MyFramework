@@ -1,0 +1,284 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>myframework.routin &#8212; MyFramework 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for myframework.routin</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding:utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">myframework.error</span> <span class="k">import</span> <span class="n">RouteNotFoundException</span><span class="p">,</span> <span class="n">RouteReset</span>
+<span class="kn">from</span> <span class="nn">myframework.error</span> <span class="k">import</span> <span class="n">UnknownFilterException</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">FilterDict</span><span class="p">,</span> <span class="n">CachedProperty</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">unquote</span>
+
+<span class="n">PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;(.*?)&gt;&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Router"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Router">[docs]</a><span class="k">class</span> <span class="nc">Router</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">routes</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="Router.add_route"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Router.add_route">[docs]</a>    <span class="k">def</span> <span class="nf">add_route</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="n">Route</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> must be a Route instance&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">route</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">route</span><span class="p">:</span> <span class="n">route</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Router.re_rule_for"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Router.re_rule_for">[docs]</a>    <span class="k">def</span> <span class="nf">re_rule_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">router</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">router</span><span class="o">.</span><span class="n">path</span></div>
+
+<div class="viewcode-block" id="Router.match"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Router.match">[docs]</a>    <span class="k">def</span> <span class="nf">match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">):</span>
+        <span class="n">env_path</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PATH_INFO&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+        <span class="n">env_path</span> <span class="o">=</span> <span class="n">unquote</span><span class="p">(</span><span class="n">env_path</span><span class="p">)</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;REQUEST_METHOD&#39;</span><span class="p">,</span> <span class="s1">&#39;GET&#39;</span><span class="p">)</span>
+        <span class="c1"># 匹配出router</span>
+        <span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">routes</span><span class="p">:</span>
+            <span class="c1"># 匹配方法</span>
+            <span class="k">if</span> <span class="n">route</span><span class="o">.</span><span class="n">method</span> <span class="o">!=</span> <span class="n">method</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># 静态路由匹配</span>
+            <span class="k">if</span> <span class="n">route</span><span class="o">.</span><span class="n">is_static</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">route</span><span class="o">.</span><span class="n">path</span> <span class="o">==</span> <span class="n">env_path</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">route</span><span class="p">,</span> <span class="p">{}</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># 动态路由匹配</span>
+            <span class="n">is_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">route</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">env_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_match</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">route</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trans_int_float_value</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="n">is_match</span><span class="o">.</span><span class="n">groupdict</span><span class="p">())</span>
+        <span class="k">raise</span> <span class="n">RouteNotFoundException</span><span class="p">(</span><span class="n">env_path</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_trans_int_float_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">v_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; trans int and float filter value to python value &quot;&quot;&quot;</span>
+        <span class="n">f_i_dict</span> <span class="o">=</span> <span class="n">route</span><span class="o">.</span><span class="n">int_float_argvs</span>
+
+        <span class="k">for</span> <span class="n">v_name</span><span class="p">,</span> <span class="n">v_type</span> <span class="ow">in</span> <span class="n">f_i_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">v_dict</span><span class="p">[</span><span class="n">v_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v_dict</span><span class="p">[</span><span class="n">v_name</span><span class="p">])</span> <span class="k">if</span> <span class="n">v_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">v_dict</span><span class="p">[</span><span class="n">v_name</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">v_dict</span>
+
+<div class="viewcode-block" id="Router.add_filter"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Router.add_filter">[docs]</a>    <span class="k">def</span> <span class="nf">add_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">,</span> <span class="n">re_rule</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add a new filter to the route class.</span>
+<span class="sd">            name: filter name (str)</span>
+<span class="sd">            re: filter discard (use re)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Route</span><span class="o">.</span><span class="n">filter_pattern</span><span class="p">[</span><span class="n">filter_name</span><span class="p">]</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(?P&lt;</span><span class="si">{name}</span><span class="s1">&gt;</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">re_rule</span></div></div>
+
+
+<div class="viewcode-block" id="Route"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Route">[docs]</a><span class="k">class</span> <span class="nc">Route</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">filter_pattern</span> <span class="o">=</span> <span class="n">FilterDict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">apply_list</span><span class="p">,</span> <span class="n">skip</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plugin_list</span> <span class="o">=</span> <span class="n">apply_list</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">int_float_argvs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trans_to_re</span><span class="p">()</span>
+
+    <span class="nd">@CachedProperty</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">callback</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">plugin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_plugins</span><span class="p">:</span>
+                <span class="n">callback</span> <span class="o">=</span> <span class="n">plugin</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">RouteReset</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;call&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">call</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">callback</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">all_plugins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">unique</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">plugins</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">plugin_list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="kc">True</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+            <span class="c1"># skip plugins we don&#39;t need</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">unique</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+                <span class="n">unique</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">p</span>
+
+<div class="viewcode-block" id="Route.reset"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Route.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;call&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_static</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_with_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;&lt;&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_find_filters</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; from path find all filters and name or re rules and add them to a list</span>
+<span class="sd">            :return [(name, filter [, re_rules])...]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name_and_filter_list</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;([^/]+)&gt;&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">orgin_name</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">name_and_filter</span> <span class="ow">in</span> <span class="n">name_and_filter_list</span><span class="p">:</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">name_and_filter</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="n">orgin_name</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rest</span><span class="p">))</span>
+                              <span class="k">if</span> <span class="n">rest</span> <span class="k">else</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">filter_name</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">orgin_name</span>
+
+<div class="viewcode-block" id="Route.trans_to_re"><a class="viewcode-back" href="../../myframework.html#myframework.routin.Route.trans_to_re">[docs]</a>    <span class="k">def</span> <span class="nf">trans_to_re</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; transfer all filter into a re filter &quot;&quot;&quot;</span>
+        <span class="c1"># 静态路由不转换</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_static</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># 动态无过滤器</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_with_filter</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regular_to_re</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c1"># 动态有过滤器</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter_to_re</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_regular_to_re</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="c1"># find all names</span>
+        <span class="n">all_names</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;([^/]+)&gt;&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="c1"># 替换为普通过滤器</span>
+        <span class="n">regular</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_pattern</span><span class="p">[</span><span class="s1">&#39;regular&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">all_names</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;</span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">regular</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_filter_to_re</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="c1"># find all names and filters</span>
+        <span class="n">name_filters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_filters</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="c1"># 替换为相关的路由</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">rule</span> <span class="ow">in</span> <span class="n">name_filters</span><span class="p">:</span>
+            <span class="c1"># 构造新的re</span>
+            <span class="k">if</span> <span class="n">f</span> <span class="o">==</span> <span class="s1">&#39;re&#39;</span><span class="p">:</span>
+                <span class="n">re_rule</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(?P&lt;</span><span class="si">{name}</span><span class="s1">&gt;</span><span class="si">{rule}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">rule</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="c1"># 保存int和float filter的信息，用来进行强制类型转换</span>
+                <span class="k">if</span> <span class="n">f</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_add_int_float_value</span><span class="p">(</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">f</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_add_int_float_value</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+                <span class="c1"># 替换filter为re正则表达式</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_pattern</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">r</span><span class="p">:</span>
+                    <span class="n">re_rule</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">UnknownFilterException</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="n">old_re</span> <span class="o">=</span> <span class="s1">&#39;&lt;</span><span class="si">{name}</span><span class="s1">:</span><span class="si">{f}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">)</span> \
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">rule</span> <span class="k">else</span> <span class="s1">&#39;&lt;</span><span class="si">{name}</span><span class="s1">:</span><span class="si">{f}</span><span class="s1">:</span><span class="si">{rule}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">rule</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># 替换为新re</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">old_re</span><span class="p">,</span> <span class="n">re_rule</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_add_int_float_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v_type</span><span class="p">,</span> <span class="n">value_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; 在解析path路径时，将int和float的变量名称保存起来之后转为相应类型 &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">v_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Neet int or float string not </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v_type</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">int_float_argvs</span><span class="p">[</span><span class="n">value_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_type</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;Route for path: </span><span class="si">{}</span><span class="s1">&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, dispensable.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

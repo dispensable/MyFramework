@@ -4,6 +4,7 @@ import re
 from myframework.error import RouteNotFoundException, RouteReset
 from myframework.error import UnknownFilterException
 from .utils import FilterDict, CachedProperty
+from urllib.parse import unquote
 
 PATTERN = re.compile(r'<(.*?)>')
 
@@ -19,11 +20,12 @@ class Router(object):
         self.routes.sort(key=lambda route: route.path)
         self.routes.reverse()
 
-    def url_for(self, router):
+    def re_rule_for(self, router):
         return router.path
 
     def match(self, environ):
         env_path = environ.get('PATH_INFO', '/')
+        env_path = unquote(env_path)
         method = environ.get('REQUEST_METHOD', 'GET')
         # 匹配出router
         for route in self.routes:
@@ -66,6 +68,7 @@ class Route(object):
 
     def __init__(self, app, path, method, callback, name, apply_list, skip, **config):
         self.app = app
+        self.raw_path = path
         self.path = path
         self.method = method
         self.callback = callback

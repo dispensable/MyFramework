@@ -5,11 +5,14 @@ from io import BytesIO
 from json import load, JSONDecodeError
 from tempfile import TemporaryFile
 from urllib import parse
+from urllib.parse import unquote
 
 from myframework.error import HttpError
 from .utils import FileUpload
 from .utils import LocalVar
 from .utils import check_cookie
+from .utils import CachedProperty
+from .error import CookieNotExist
 
 
 class Request(object):
@@ -21,11 +24,11 @@ class Request(object):
         self.environ = {} if environ is None else environ
         self.environ['myframework.request'] = self
 
-    @property
+    @CachedProperty
     def path(self):
-        return self.environ['PATH_INFO']
+        return unquote(self.environ['PATH_INFO'])
 
-    @property
+    @CachedProperty
     def headers(self):
         headers = {}
         headers['content-length'] = self.environ.get('CONTENT-LENGTH', '')
@@ -35,43 +38,49 @@ class Request(object):
                 headers[key[5:].lower()] = self.environ[key]
         return headers
 
-    @property
+    @CachedProperty
     def cookie(self):
         """ 返回SIMPLECOOKIE生成的SimpleCookie实例"""
         cookie = self.environ.get('HTTP_COOKIE', None)
 
         if cookie:
             return SimpleCookie(cookie)
-        return cookie
+        raise CookieNotExist('Rquest object')
 
     def check_cookie(self, cookie, secret, secret_level=hashlib.sha256):
         return check_cookie(cookie, secret_key=secret, secret_level=secret_level)
 
-    @property
+    def get_cookie(self, cookie_name):
+        try:
+            return self.cookie[cookie_name].value
+        except CookieNotExist:
+            raise CookieNotExist(cookie_name)
+
+    @CachedProperty
     def method(self):
         return self.environ['REQUEST_METHOD']
 
-    @property
+    @CachedProperty
     def query_str(self):
-        return self.environ['QUERY_STRING']
+        return unquote(self.environ['QUERY_STRING'])
 
-    @property
+    @CachedProperty
     def parsed_url(self):
         return parse.urlparse(self.url)
 
-    @property
+    @CachedProperty
     def query(self):
         """ 返回一个query字典 形式如 {'q': ['a'],...}
             [] 用来指定多次指定相同参数的情况
         """
         return parse.parse_qs(self.query_str)
 
-    @property
+    @CachedProperty
     def environ(self):
         """ 返回一个wsgi environ字典的副本 """
         return self.environ.copy()
 
-    @property
+    @CachedProperty
     def json(self):
         json_header = self.environ.get('HTTP_CONTENT_TYPE', '').lower()
         if ('application/json' in json_header) or \
@@ -148,26 +157,26 @@ class Request(object):
         body.seek(0)
         return body
 
-    @property
+    @CachedProperty
     def chunked(self):
         return True if self.environ.get('HTTP_TRANSFER_ENCODING', '') == 'chunked' else False
 
-    @property
+    @CachedProperty
     def url(self):
         schema = self.environ['wsgi.url_scheme']
         host = self.environ.get('HTTP_HOST', '')
-        path_info = self.environ['PATH_INFO']
+        path_info = unquote(self.environ['PATH_INFO'])
         if not host:
             server_name = self.environ['SERVER_NAME']
             server_port = self.environ['SERVER_PORT']
             return ''.join([schema, '://', server_name, ':', server_port, path_info])
         return ''.join([schema, '://', host, path_info])
 
-    @property
+    @CachedProperty
     def script_name(self):
         return self.environ['SCRIPT_NAME']
 
-    @property
+    @CachedProperty
     def is_xhr(self):
         """ True if the request was triggered by a XMLHttpRequest. This only
             works with JavaScript libraries that support the `X-Requested-With`

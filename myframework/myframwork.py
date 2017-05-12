@@ -9,6 +9,7 @@ import sys
 import time
 import traceback
 from json import dumps
+from urllib.parse import quote, urljoin, urlencode
 
 from reloader import reloaders
 from .response import ResponseWrapper
@@ -42,6 +43,10 @@ class MyApp(object):
         self.name = name
         self.router = Router()
         self.routes = []
+
+        # {route.callback.__name__: [route]}
+        self.func_name_routes = {}
+
         self.hooks = {'before_request': [],
                       'after_request': [],
                       'before_first_request': [],
@@ -337,9 +342,6 @@ class MyApp(object):
     def match(self, environ):
         self.router.match(environ)
 
-    def url_for(self, routename):
-        pass
-
     def route(self, path=None, method='GET', callback=None,
               name=None, apply=None, skip=None, **config):
         """ 路由装饰器函数
@@ -350,6 +352,14 @@ class MyApp(object):
         """
         def wrapper(func):
             this_route = Route(self, path, method, func, name, apply, skip, **config)
+
+            func_name = func.__name__
+
+            if func_name in self.func_name_routes:
+                self.func_name_routes[func_name].append(func_name)
+            else:
+                self.func_name_routes[func_name] = [this_route]
+
             self.routes.append(this_route)
             self.router.add_route(this_route)
             return func
@@ -395,6 +405,21 @@ class MyApp(object):
         temp_dir = kwargs.pop('template_dir', os.path.join(os.path.dirname(self.root_path), 'templates'))
 
         return Template(tname, temp_plugin, temp_dir, **kwargs)
+
+    def url_for(self, func_name, **kwargs):
+        if func_name in self.func_name_routes:
+            encoded_raw_path = quote(self.func_name_routes[func_name][0].raw_path)
+            host = request.get_environ('HTTP_HOST')
+            scheme = request.get_environ('wsgi.url_scheme')
+
+            base_url = scheme + '://' + host
+            encoded_full_url = urljoin(base_url, encoded_raw_path)
+
+            if not kwargs:
+                return encoded_full_url
+            return encoded_full_url + '?' + urlencode(kwargs)
+        else:
+            raise RouteNotFoundException(func_name, 'GET')
 
 
 def error(status_code, phrase=None, traceback=None):

@@ -7,7 +7,7 @@ import hashlib
 import base64
 import pickle
 import hmac
-import datetime, time
+import time
 
 
 version_info = (0, 1, 0)

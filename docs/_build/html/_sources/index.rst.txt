@@ -17,8 +17,7 @@ Welcome to MyFramework's documentation!
    plugin
    design
    FAQ
-
-
+   modules
 
 Indices and tables
 ==================

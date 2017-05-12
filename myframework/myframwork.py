@@ -431,6 +431,13 @@ def abort(status_code, phrase=None):
 
 
 def redirect(new_url):
+    """
+    redirect request to new ulr.
+
+    :param new_url: url to redirct to
+    :return: None
+
+    """
     response.status_code = 303
     response.add_header('Location', new_url, unique=True)
 
@@ -452,6 +459,7 @@ def static_file(filename, root, mimetype=True, download=False, charset='UTF-8', 
     :param etag: etag for efficient web
     :return: Filelike object
     """
+
     root = os.path.join(os.path.abspath(root), '')
     filename = os.path.abspath(os.path.join(root, filename.strip('\\/')))
 

@@ -4,7 +4,8 @@ A simple python web framework.
 简介
 ====
 
-MyFramework 是一个使用Python实现的，简单的web框架。详细文档参见：[myframework](https://dispensable.github.io/MyFrame…)
+MyFramework 是一个使用Python实现的，简单的web框架。详细文档
+参见：[myframework documentation](https://dispensable.github.io/MyFramework/)
 该框架提供了以下特性：
 
 主要功能
@@ -43,11 +44,11 @@ MyFramework 是一个使用Python实现的，简单的web框架。详细文档�
 TODO
 =====
 
-    * XSS, CSRF防御
-    * 常用服务器适配支持
-    * debug模式增强
-    * HTTP工具增强
-    * 常用模板插件
-    * 常用数据库插件
-    * app stack支持
-    * 子应用挂载自持
+* XSS, CSRF防御
+* 常用服务器适配支持
+* debug模式增强
+* HTTP工具增强
+* 常用模板插件
+* 常用数据库插件
+* app stack支持
+* 子应用挂载自持

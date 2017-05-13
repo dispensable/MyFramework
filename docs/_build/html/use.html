@@ -663,6 +663,8 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 </div>
 <div class="section" id="id27">
 <h2>部署<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="run">
+<h3>run()函数<a class="headerlink" href="#run" title="Permalink to this headline">¶</a></h3>
 <p>通过run()函数可以快速的使用内置的测试服务器，方便开发。run函数有很多参数，说明之前首先看一个示例：</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframework.myframework</span> <span class="kn">import</span> <span class="n">run</span>
 <span class="c1"># all the app code</span>
@@ -703,6 +705,24 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 <li>config： 需要为覆盖的框架配置</li>
 <li>kwargs： 其余关键字参数，原封不动的传入到server适配器中。</li>
 </ul>
+</div>
+</div>
+<div class="section" id="serveradaptor">
+<h2>ServerAdaptor 自定义<a class="headerlink" href="#serveradaptor" title="Permalink to this headline">¶</a></h2>
+<p>你可以为自己需要使用的服务器自定义适配器，继承ServerAdaptor类，然后实现其run()方法即可。
+run方法接受一个app实例作为其参数。ServerAdaptor的初始化参数为run函数的参数列表。参见 <a class="reference internal" href="myframework.html#run-label"><span class="std std-ref">myframework.myframwork module</span></a></p>
+<p>一个简单的的示例如下：</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">myframework.server</span> <span class="kn">import</span> <span class="n">ServerAdaptor</span>
+
+<span class="k">class</span> <span class="nc">WsigirefServerAdaptor</span><span class="p">(</span><span class="n">ServerAdaptor</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">wsgiref.simpleserver</span> <span class="kn">import</span> <span class="n">make_server</span>
+        <span class="kn">from</span> <span class="nn">wsgiref.validate</span> <span class="kn">import</span> <span class="n">validator</span>
+
+        <span class="n">server</span> <span class="o">=</span> <span class="n">make_server</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">,</span> <span class="n">validator</span><span class="p">(</span><span class="n">app</span><span class="p">))</span>
+        <span class="n">server</span><span class="o">.</span><span class="n">server_forever</span><span class="p">()</span>
+</pre></div>
+</div>
 </div>
 </div>
 
@@ -761,7 +781,11 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 <li><a class="reference internal" href="#options">Options:</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id27">部署</a></li>
+<li><a class="reference internal" href="#id27">部署</a><ul>
+<li><a class="reference internal" href="#run">run()函数</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#serveradaptor">ServerAdaptor 自定义</a></li>
 </ul>
 </li>
 </ul>

@@ -28,6 +28,9 @@ myframework\.main module
     :undoc-members:
     :show-inheritance:
 
+
+.. _run-label:
+
 myframework\.myframwork module
 ------------------------------
 
@@ -59,6 +62,8 @@ myframework\.response module
     :members:
     :undoc-members:
     :show-inheritance:
+
+.. _routin-label:
 
 myframework\.routin module
 --------------------------

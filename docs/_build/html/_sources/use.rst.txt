@@ -654,6 +654,10 @@ Options:
 部署
 ----
 
+run()函数
+^^^^^^^
+
+
 通过run()函数可以快速的使用内置的测试服务器，方便开发。run函数有很多参数，说明之前首先看一个示例：
 
 .. code-block:: python
@@ -694,3 +698,24 @@ run函数的参数列表如下：
 * debug： 是否开启debug模式
 * config： 需要为覆盖的框架配置
 * kwargs： 其余关键字参数，原封不动的传入到server适配器中。
+
+ServerAdaptor 自定义
+--------------------
+
+你可以为自己需要使用的服务器自定义适配器，继承ServerAdaptor类，然后实现其run()方法即可。
+run方法接受一个app实例作为其参数。ServerAdaptor的初始化参数为run函数的参数列表。参见 :ref:`run-label`
+
+一个简单的的示例如下：
+
+.. code-block:: python
+
+    from myframework.server import ServerAdaptor
+
+    class WsigirefServerAdaptor(ServerAdaptor):
+        def run(self, app):
+            from wsgiref.simpleserver import make_server
+            from wsgiref.validate import validator
+
+            server = make_server(self.host, self.port, validator(app))
+            server.server_forever()
+

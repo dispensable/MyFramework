@@ -12,6 +12,8 @@ myframework\.plugin\.json\_plugin module
     :undoc-members:
     :show-inheritance:
 
+.. _plugin-api-label:
+
 myframework\.plugin\.plugin module
 ----------------------------------
 

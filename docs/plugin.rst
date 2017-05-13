@@ -32,6 +32,8 @@ MyFramework只实现了核心的web框架功能，如果需要更丰富的功能
 
 参见 :ref:`plugin-api-label` .
 
+.. _plugin-selfdef-label:
+
 自定义插件
 -----
 

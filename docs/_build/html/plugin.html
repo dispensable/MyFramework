@@ -70,8 +70,8 @@
 <h2>插件API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
 <p>参见 <a class="reference internal" href="myframework.plugin.html#plugin-api-label"><span class="std std-ref">myframework.plugin.plugin module</span></a> .</p>
 </div>
-<div class="section" id="id4">
-<h2>自定义插件<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="plugin-selfdef-label">
+<span id="id4"></span><h2>自定义插件<a class="headerlink" href="#plugin-selfdef-label" title="Permalink to this headline">¶</a></h2>
 <p>所谓插件，本质上就是对用户定义的路由函数的一个包裹函数。插件本身虽然以类的形式存在，但本质上是一个装饰器。在需要对路由函数
 操作时，插入相关代码，并返回新的函数作为路由函数。在不需要任何操作时，直接返回原来的回调函数即可。</p>
 <p>通过继承和实现Plugin类的相关方法，可以很方便的完成插件的开发。下面以模板插件为例，讲解插件的开发：</p>
@@ -163,7 +163,7 @@
 <li><a class="reference internal" href="#id2">内置插件</a></li>
 <li><a class="reference internal" href="#id3">插件安装和卸载</a></li>
 <li><a class="reference internal" href="#api">插件API</a></li>
-<li><a class="reference internal" href="#id4">自定义插件</a></li>
+<li><a class="reference internal" href="#plugin-selfdef-label">自定义插件</a></li>
 </ul>
 </li>
 </ul>

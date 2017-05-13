@@ -2,6 +2,7 @@
 
 from myframework.myframwork import MyApp, request, response, error, redirect, run
 from myframework.utils import check_cookie
+from myframework.error import CookieNotExist
 
 import os
 
@@ -10,19 +11,17 @@ wsgi_app = MyApp(__file__)
 
 @wsgi_app.route('/4')
 def hello():
-    print(request)
-    if request.cookie is None:
+    try:
+        cookie_value = request.cookie
+    except CookieNotExist:
         response.set_cookie('wang', 'test', secret_key='wang')
-    else:
-        print('-----')
-        print(request.cookie['wang'].value)
-        is_passed = check_cookie(request.cookie['wang'].value, 'wang')
-        if is_passed:
-            print('Cookie check passed!')
-        else:
-            print('Cookie check failed!')
+        return "Cookie has set."
 
-    return '<h1>hello world!</h1>'
+    is_passed = check_cookie(cookie_value['wang'].value, 'wang')
+    if is_passed:
+        return "Cookie check passed!"
+    else:
+        return "cookie check failed"
 
 
 @wsgi_app.route(r'/wiki/<name>')

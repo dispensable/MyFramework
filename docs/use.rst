@@ -581,17 +581,19 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
         </p>
     </form>
 
+
 模板设置
-^^^^
+----
 
 通过指定 `render_template` tempalte_plugin 参数，可以替换模板引擎，默认为MakoTemplatePlugin。通过
 `template_dir` 参数可以指定模板文件的位置。其余关键字参数都会原封不动的传入Template类通过template插件
 传入相应的模板引擎。
 
-模板插件
-^^^^
 
-框架内置Mako模板插件，通过插件完成模板渲染的功能。插件的开发和模板替换详见插件章节。
+模板插件
+----
+
+框架内置Mako模板插件，通过插件完成模板渲染的功能。插件的开发和模板替换详见 :ref:`plugin-selfdef-label` 。
 
 
 开发工具

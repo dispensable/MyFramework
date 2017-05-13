@@ -180,8 +180,6 @@ class MyApp(object):
             Iterable or Generators： 迭代器对象或者生成器对象，并调用next方法
         """
         # Todo: 编码值使用动态确定 从respiter的header中生成
-        print('respiter of convert_to_wsgi: ')
-        print(respiter)
 
         if isinstance(respiter, dict):
             response.content_type = 'application/json'

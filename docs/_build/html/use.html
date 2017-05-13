@@ -571,13 +571,19 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 <span class="p">&lt;/</span><span class="nt">form</span><span class="p">&gt;</span>
 </pre></div>
 </div>
+<div class="section" id="id26">
+<h2>模板设置<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h2>
 <p>通过指定 <cite>render_template</cite> tempalte_plugin 参数，可以替换模板引擎，默认为MakoTemplatePlugin。通过
 <cite>template_dir</cite> 参数可以指定模板文件的位置。其余关键字参数都会原封不动的传入Template类通过template插件
 传入相应的模板引擎。</p>
-<p>框架内置Mako模板插件，通过插件完成模板渲染的功能。插件的开发和模板替换详见插件章节。</p>
 </div>
-<div class="section" id="id26">
-<h1>开发工具<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id27">
+<h2>模板插件<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h2>
+<p>框架内置Mako模板插件，通过插件完成模板渲染的功能。插件的开发和模板替换详见 <a class="reference internal" href="plugin.html#plugin-selfdef-label"><span class="std std-ref">自定义插件</span></a> 。</p>
+</div>
+</div>
+<div class="section" id="id28">
+<h1>开发工具<a class="headerlink" href="#id28" title="Permalink to this headline">¶</a></h1>
 <p>MyFramework内置了几个工具方便web开发，主要有：</p>
 <div class="section" id="debug">
 <h2>debug<a class="headerlink" href="#debug" title="Permalink to this headline">¶</a></h2>
@@ -661,8 +667,8 @@ app实例的render_template方法可以返回模板文件并自定渲染和编�
 </table>
 </div>
 </div>
-<div class="section" id="id27">
-<h2>部署<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id29">
+<h2>部署<a class="headerlink" href="#id29" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="run">
 <h3>run()函数<a class="headerlink" href="#run" title="Permalink to this headline">¶</a></h3>
 <p>通过run()函数可以快速的使用内置的测试服务器，方便开发。run函数有很多参数，说明之前首先看一个示例：</p>
@@ -772,8 +778,12 @@ run方法接受一个app实例作为其参数。ServerAdaptor的初始化参数�
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id25">模板</a></li>
-<li><a class="reference internal" href="#id26">开发工具</a><ul>
+<li><a class="reference internal" href="#id25">模板</a><ul>
+<li><a class="reference internal" href="#id26">模板设置</a></li>
+<li><a class="reference internal" href="#id27">模板插件</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id28">开发工具</a><ul>
 <li><a class="reference internal" href="#debug">debug</a></li>
 <li><a class="reference internal" href="#reloader">reloader</a></li>
 <li><a class="reference internal" href="#command-line-interface">command line interface</a><ul>
@@ -781,7 +791,7 @@ run方法接受一个app实例作为其参数。ServerAdaptor的初始化参数�
 <li><a class="reference internal" href="#options">Options:</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id27">部署</a><ul>
+<li><a class="reference internal" href="#id29">部署</a><ul>
 <li><a class="reference internal" href="#run">run()函数</a></li>
 </ul>
 </li>

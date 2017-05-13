@@ -3,7 +3,7 @@
 简介
 ====
 
-MyFramework 是一个使用Python实现的，简单的web框架。提供了一下特性：
+MyFramework 是一个使用Python实现的，简单的web框架。提供了以下特性：
 
 主要功能
 ========

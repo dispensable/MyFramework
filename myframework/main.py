@@ -68,5 +68,8 @@ class BaseApp:
         server.serve_forever()
 
 
-if __name__ == '__main__':
+def run():
     BaseApp(sys.argv).run()
+
+if __name__ == '__main__':
+    run()
